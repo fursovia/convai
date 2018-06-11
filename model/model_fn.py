@@ -97,7 +97,7 @@ def model_fn(features, labels, mode, params):
         return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
     tf.summary.scalar('loss', loss)
-    tf.summary.scalar('accuracy', tf.metrics.mean(acc[1]))
+    # tf.summary.scalar('accuracy', tf.metrics.mean(acc[1]))
 
     optimizer = tf.train.AdamOptimizer(params.learning_rate)
 
