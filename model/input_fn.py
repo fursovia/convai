@@ -3,6 +3,7 @@
 import pickle
 import tensorflow as tf
 import os
+import numpy as np
 
 
 def train_input_fn(data_dir, params):
@@ -17,9 +18,10 @@ def train_input_fn(data_dir, params):
     I = pickle.load(open(os.path.join(data_dir, 'train/I.pkl'), 'rb'))  # personal Info
     labels = pickle.load(open(os.path.join(data_dir, 'train/Y.pkl'), 'rb'))  # labels
 
+    data = np.hstack((C, Q, R, I))
     params.train_size = len(C)
 
-    dataset = tf.data.Dataset.from_tensor_slices((C, Q, R, I, labels))
+    dataset = tf.data.Dataset.from_tensor_slices((data, labels))
 
     dataset = dataset.shuffle(params.train_size)
     dataset = dataset.repeat(params.num_epochs)
@@ -41,7 +43,9 @@ def eval_input_fn(data_dir, params):
     I = pickle.load(open(os.path.join(data_dir, 'eval/I.pkl'), 'rb'))  # personal Info
     labels = pickle.load(open(os.path.join(data_dir, 'eval/Y.pkl'), 'rb'))  # labels
 
-    dataset = tf.data.Dataset.from_tensor_slices((C, Q, R, I, labels))
+    data = np.hstack((C, Q, R, I))
+
+    dataset = tf.data.Dataset.from_tensor_slices((data, labels))
     dataset = dataset.batch(params.batch_size)
     dataset = dataset.prefetch(buffer_size=None)
     return dataset
@@ -59,9 +63,10 @@ def final_train_input_fn(data_dir, params):
     I = pickle.load(open(os.path.join(data_dir, 'I.pkl'), 'rb'))  # personal Info
     labels = pickle.load(open(os.path.join(data_dir, 'Y.pkl'), 'rb'))  # labels
 
+    data = np.hstack((C, Q, R, I))
     params.train_size = len(C)
 
-    dataset = tf.data.Dataset.from_tensor_slices((C, Q, R, I, labels))
+    dataset = tf.data.Dataset.from_tensor_slices((data, labels))
 
     dataset = dataset.shuffle(params.train_size)
     dataset = dataset.repeat(params.num_epochs)
