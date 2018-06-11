@@ -1,0 +1,8 @@
+{
+    "learning_rate": 0.001,
+    "batch_size": 512,
+    "num_epochs": 5,
+    "vocab_size": 30000,
+    "embedding_size": 300,
+    "save_summary_steps": 10
+}
