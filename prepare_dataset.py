@@ -17,6 +17,10 @@ import string
 import spacy
 
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--features', default='N', help="Whether to do some feature engineering")
+
+
 def clean(text):
     text = text.lower()
     # оставляем только буквы
@@ -45,6 +49,8 @@ def vectorize_text(text, word2idx, maxlen=40):
 
 
 if __name__ == '__main__':
+
+    args = parser.parse_args()
 
     with open('data/initial/train_both_original_no_cands.txt', 'r') as file:
         train_raw_data = file.readlines()
@@ -159,6 +165,11 @@ if __name__ == '__main__':
 
     print('Num of negative examples = {}'.format(len(X_neg)))
 
+
+    # TODO: придумать фичи
+    if args.features == 'Y':
+        pass
+
     # получаем словарь
     num_words = 15000
     num_bigrams = 15000
@@ -191,7 +202,7 @@ if __name__ == '__main__':
     info_vect = []
 
     for i, dial in enumerate(tqdm(X)):
-        cont = vectorize_text(dial[0], word2idx)
+        cont = vectorize_text(dial[0], word2idx, 80)
         ques = vectorize_text(dial[1], word2idx)
         reply = vectorize_text(dial[2], word2idx)
         neg_reply = vectorize_text(X_neg[i][2], word2idx)
@@ -207,22 +218,23 @@ if __name__ == '__main__':
                 vect_info = vectorize_text(info_[j], word2idx)
                 info_vect.append(vect_info)
             except IndexError:
-                info_vect.append(np.zeros_like(cont))
+                info_vect.append(np.zeros_like(ques))  # длина вопроса равна длине факта
 
     context_vect = context_vect + context_vect
-    info_vect = info_vect + info_vect
     question_vect = question_vect + question_vect
+    info_vect = info_vect + info_vect
 
     context_vect = np.array(context_vect, int)
     question_vect = np.array(question_vect, int)
     reply_vect = np.array(reply_vect, int)
     info_vect = np.array(info_vect).reshape(-1, 200)
 
-    print(context_vect.shape)
-    print(question_vect.shape)
-    print(reply_vect.shape)
-    print(info_vect.shape)
+    print('Context shape = {}'.format(context_vect.shape))
+    print('Question shape = {}'.format(question_vect.shape))
+    print('Reply shape = {}'.format(reply_vect.shape))
+    print('Personal info shape = {}'.format(info_vect.shape))
 
+    # сохраняем данные
     Ctr, Cev, Qtr, Qev, Rtr, Rev, Itr, Iev = train_test_split(context_vect,
                                                               question_vect,
                                                               reply_vect,
@@ -247,3 +259,6 @@ if __name__ == '__main__':
     pickle.dump(Rev, open(os.path.join(valid_path, 'R.pkl'), 'wb'))
     pickle.dump(Itr, open(os.path.join(train_path, 'I.pkl'), 'wb'))
     pickle.dump(Iev, open(os.path.join(valid_path, 'I.pkl'), 'wb'))
+
+    print('Data saved at {}'.format(train_path))
+    print('and at {}'.format(valid_path))
