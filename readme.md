@@ -4,6 +4,7 @@
 
 1. Put the data in `data/initial` folder
 2. Run `prepare_dataset.py`
+3. run `train.py`
 
 ## Feature engineering
 
