@@ -247,8 +247,9 @@ if __name__ == '__main__':
                                                                         test_size=0.1,
                                                                         random_state=24)
 
-    train_path = 'data/train'
-    valid_path = 'data/eval'
+    data_path = 'data'
+    train_path = os.path.join(data_path, 'train')
+    valid_path = os.path.join(data_path, 'eval')
 
     if not os.path.exists(train_path):
         os.makedirs(train_path)
@@ -266,6 +267,12 @@ if __name__ == '__main__':
     pickle.dump(Rev, open(os.path.join(valid_path, 'R.pkl'), 'wb'))
     pickle.dump(Itr, open(os.path.join(train_path, 'I.pkl'), 'wb'))
     pickle.dump(Iev, open(os.path.join(valid_path, 'I.pkl'), 'wb'))
+
+    pickle.dump(Y, open(os.path.join(train_path, 'Y.pkl'), 'wb'))
+    pickle.dump(context_vect, open(os.path.join(train_path, 'C.pkl'), 'wb'))
+    pickle.dump(question_vect, open(os.path.join(train_path, 'Q.pkl'), 'wb'))
+    pickle.dump(reply_vect, open(os.path.join(train_path, 'R.pkl'), 'wb'))
+    pickle.dump(info_vect, open(os.path.join(train_path, 'I.pkl'), 'wb'))
 
     print('Data saved at {}'.format(train_path))
     print('and at {}'.format(valid_path))
