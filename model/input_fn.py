@@ -17,7 +17,7 @@ def train_input_fn(data_dir, params):
     R = pickle.load(open(os.path.join(data_dir, 'train/R.pkl'), 'rb'))  # response/reply
     I = pickle.load(open(os.path.join(data_dir, 'train/I.pkl'), 'rb'))  # personal Info
     labels = pickle.load(open(os.path.join(data_dir, 'train/Y.pkl'), 'rb'))  # labels
-
+    labels = labels.reshape(-1, 1)
     data = np.hstack((C, Q, R, I))
     params.train_size = len(C)
 
@@ -42,7 +42,7 @@ def eval_input_fn(data_dir, params):
     R = pickle.load(open(os.path.join(data_dir, 'eval/R.pkl'), 'rb'))  # response/reply
     I = pickle.load(open(os.path.join(data_dir, 'eval/I.pkl'), 'rb'))  # personal Info
     labels = pickle.load(open(os.path.join(data_dir, 'eval/Y.pkl'), 'rb'))  # labels
-
+    labels = labels.reshape(-1, 1)
     data = np.hstack((C, Q, R, I))
 
     dataset = tf.data.Dataset.from_tensor_slices((data, labels))
@@ -62,7 +62,7 @@ def final_train_input_fn(data_dir, params):
     R = pickle.load(open(os.path.join(data_dir, 'R.pkl'), 'rb'))  # response/reply
     I = pickle.load(open(os.path.join(data_dir, 'I.pkl'), 'rb'))  # personal Info
     labels = pickle.load(open(os.path.join(data_dir, 'Y.pkl'), 'rb'))  # labels
-
+    labels = labels.reshape(-1, 1)
     data = np.hstack((C, Q, R, I))
     params.train_size = len(C)
 

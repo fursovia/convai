@@ -88,7 +88,7 @@ def model_fn(features, labels, mode, params):
     labels = tf.cast(labels, tf.int64)
 
     loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=labels, logits=preds)
-    acc = tf.metrics.accuracy(labels=labels, predictions=preds)
+    acc = tf.metrics.accuracy(labels=labels, predictions=preds, name='acc')
 
     if mode == tf.estimator.ModeKeys.EVAL:
         with tf.variable_scope("metrics"):
@@ -97,7 +97,7 @@ def model_fn(features, labels, mode, params):
         return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
     tf.summary.scalar('loss', loss)
-    tf.summary.scalar('accuracy', acc)
+    tf.summary.scalar('accuracy', tf.metrics.mean(acc[1]))
 
     optimizer = tf.train.AdamOptimizer(params.learning_rate)
 
