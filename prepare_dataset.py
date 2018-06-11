@@ -196,6 +196,7 @@ if __name__ == '__main__':
     # print(bi_counter.most_common(10))
 
     # векторизуем текст
+    Y = []
     context_vect = []
     question_vect = []
     reply_vect = []
@@ -210,7 +211,9 @@ if __name__ == '__main__':
         context_vect.append(cont)
         question_vect.append(ques)
         reply_vect.append(reply)
+        Y.append(1)
         reply_vect.append(neg_reply)
+        Y.append(0)
 
         info_ = dial[3]
         for j in range(5):  # 5 фактов о каждом
@@ -228,6 +231,7 @@ if __name__ == '__main__':
     question_vect = np.array(question_vect, int)
     reply_vect = np.array(reply_vect, int)
     info_vect = np.array(info_vect).reshape(-1, 200)
+    Y = np.array(Y, int)
 
     print('Context shape = {}'.format(context_vect.shape))
     print('Question shape = {}'.format(question_vect.shape))
@@ -235,12 +239,13 @@ if __name__ == '__main__':
     print('Personal info shape = {}'.format(info_vect.shape))
 
     # сохраняем данные
-    Ctr, Cev, Qtr, Qev, Rtr, Rev, Itr, Iev = train_test_split(context_vect,
-                                                              question_vect,
-                                                              reply_vect,
-                                                              info_vect,
-                                                              test_size=0.1,
-                                                              random_state=24)
+    Ytr, Yev, Ctr, Cev, Qtr, Qev, Rtr, Rev, Itr, Iev = train_test_split(Y,
+                                                                        context_vect,
+                                                                        question_vect,
+                                                                        reply_vect,
+                                                                        info_vect,
+                                                                        test_size=0.1,
+                                                                        random_state=24)
 
     train_path = 'data/train'
     valid_path = 'data/eval'
@@ -251,6 +256,8 @@ if __name__ == '__main__':
     if not os.path.exists(valid_path):
         os.makedirs(valid_path)
 
+    pickle.dump(Ytr, open(os.path.join(train_path, 'Y.pkl'), 'wb'))
+    pickle.dump(Yev, open(os.path.join(valid_path, 'Y.pkl'), 'wb'))
     pickle.dump(Ctr, open(os.path.join(train_path, 'C.pkl'), 'wb'))
     pickle.dump(Cev, open(os.path.join(valid_path, 'C.pkl'), 'wb'))
     pickle.dump(Qtr, open(os.path.join(train_path, 'Q.pkl'), 'wb'))
