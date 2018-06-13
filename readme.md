@@ -1,4 +1,4 @@
-# ParlAI competition
+# ConvAI2 competition
 
 ## Quickstart
 
