@@ -19,7 +19,7 @@ import spacy
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--features', default='N', help="Whether to do some feature engineering")
-
+parser.add_argument('--data_dir', default='/data/i.fursov/convai/data', help="Directory containing the dataset")
 
 def clean(text):
     text = text.lower()
@@ -52,10 +52,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    with open('data/initial/train_both_original_no_cands.txt', 'r') as file:
+    train_raw_data_path = os.path.join(args.data_dir, 'train_both_original_no_cands.txt')
+    valid_raw_data_path = os.path.join(args.data_dir, 'valid_both_original_no_cands.txt')
+
+    with open(train_raw_data_path, 'r') as file:
         train_raw_data = file.readlines()
 
-    with open('data/initial/valid_both_original_no_cands.txt', 'r') as file:
+    with open(valid_raw_data_path, 'r') as file:
         valid_raw_data = file.readlines()
 
     raw_data = train_raw_data + valid_raw_data
