@@ -57,7 +57,7 @@ def build_model(is_training, sentences, params):
         dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)
 
     with tf.variable_scope('fc_3'):
-        dense3 = tf.layers.dense(dense2, 1, activation=tf.nn.sigmoid)
+        dense3 = tf.layers.dense(dense2, 2, activation=tf.nn.softmax)
 
     return dense3
 
@@ -86,18 +86,21 @@ def model_fn(features, labels, mode, params):
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
     labels = tf.cast(labels, tf.int64)
+    # labels_onehot = tf.one_hot(labels, 2)
 
-    loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=labels, logits=preds)
-    acc = tf.metrics.accuracy(labels=labels, predictions=preds, name='acc')
+    loss = tf.reduce_mean(
+        tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=preds)
+    )
+    acc, acc_op = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(preds, axis=-1), name='acc')
 
     if mode == tf.estimator.ModeKeys.EVAL:
         with tf.variable_scope("metrics"):
-            eval_metric_ops = {"accuracy": acc}
+            eval_metric_ops = {"accuracy": (acc, acc_op)}
 
         return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
     tf.summary.scalar('loss', loss)
-    # tf.summary.scalar('accuracy', tf.metrics.mean(acc[1]))
+    tf.summary.scalar('accuracy', acc_op)
 
     optimizer = tf.train.AdamOptimizer(params.learning_rate)
 
