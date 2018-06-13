@@ -89,7 +89,7 @@ def model_fn(features, labels, mode, params):
     labels_onehot = tf.one_hot(labels, 2)
 
     loss = tf.reduce_mean(
-        tf.losses.softmax_cross_entropy(labels=labels_onehot, logits=preds)
+        tf.losses.softmax_cross_entropy(onehot_labels=labels_onehot, logits=preds)
     )
     acc, acc_op = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(preds, axis=-1), name='acc')
 
