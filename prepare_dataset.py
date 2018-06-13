@@ -14,7 +14,8 @@ import re
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--features', default='N', help="Whether to do some feature engineering")
-parser.add_argument('--data_dir', default='/data/i.fursov/convai/data', help="Directory containing the dataset")
+parser.add_argument('--data_dir', default='data', help="Directory containing the dataset")
+parser.add_argument('--vocab_size', type=int, default=10000)
 
 def clean(text):
     text = text.lower()
@@ -169,9 +170,8 @@ if __name__ == '__main__':
         pass
 
     # получаем словарь
-    num_words = 15000
-    num_bigrams = 15000
-    num_char3grams = 10000
+    num_words = int(args.vocab_size / 2)
+    num_bigrams = int(args.vocab_size / 2)
 
     corpus = all_infos_cleaned + all_utterances_cleaned
     words = ' '.join(corpus).split()
@@ -249,12 +249,20 @@ if __name__ == '__main__':
     data_path = args.data_dir
     train_path = os.path.join(data_path, 'train')
     valid_path = os.path.join(data_path, 'eval')
+    sample_train_path = os.path.join(data_path, 'sample/train')
+    sample_valid_path = os.path.join(data_path, 'sample/eval')
 
     if not os.path.exists(train_path):
         os.makedirs(train_path)
 
     if not os.path.exists(valid_path):
         os.makedirs(valid_path)
+
+    if not os.path.exists(sample_train_path):
+        os.makedirs(sample_train_path)
+
+    if not os.path.exists(sample_valid_path):
+        os.makedirs(sample_valid_path)
 
     pickle.dump(Ytr, open(os.path.join(train_path, 'Y.pkl'), 'wb'))
     pickle.dump(Yev, open(os.path.join(valid_path, 'Y.pkl'), 'wb'))
@@ -266,6 +274,17 @@ if __name__ == '__main__':
     pickle.dump(Rev, open(os.path.join(valid_path, 'R.pkl'), 'wb'))
     pickle.dump(Itr, open(os.path.join(train_path, 'I.pkl'), 'wb'))
     pickle.dump(Iev, open(os.path.join(valid_path, 'I.pkl'), 'wb'))
+
+    pickle.dump(Ytr[:100], open(os.path.join(sample_train_path, 'Y.pkl'), 'wb'))
+    pickle.dump(Yev[:100], open(os.path.join(sample_valid_path, 'Y.pkl'), 'wb'))
+    pickle.dump(Ctr[:100], open(os.path.join(sample_train_path, 'C.pkl'), 'wb'))
+    pickle.dump(Cev[:100], open(os.path.join(sample_valid_path, 'C.pkl'), 'wb'))
+    pickle.dump(Qtr[:100], open(os.path.join(sample_train_path, 'Q.pkl'), 'wb'))
+    pickle.dump(Qev[:100], open(os.path.join(sample_valid_path, 'Q.pkl'), 'wb'))
+    pickle.dump(Rtr[:100], open(os.path.join(sample_train_path, 'R.pkl'), 'wb'))
+    pickle.dump(Rev[:100], open(os.path.join(sample_valid_path, 'R.pkl'), 'wb'))
+    pickle.dump(Itr[:100], open(os.path.join(sample_train_path, 'I.pkl'), 'wb'))
+    pickle.dump(Iev[:100], open(os.path.join(sample_valid_path, 'I.pkl'), 'wb'))
 
     pickle.dump(Y, open(os.path.join(train_path, 'Y.pkl'), 'wb'))
     pickle.dump(context_vect, open(os.path.join(train_path, 'C.pkl'), 'wb'))
