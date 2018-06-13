@@ -17,7 +17,7 @@ def build_model(is_training, sentences, params):
     context = sentences[:, :80]
     question = sentences[:, 80:120]
     reply = sentences[:, 120:160]
-    personal_info = sentences[:, 160:360]
+    # personal_info = sentences[:, 160:360]
 
     weights_initializer = tf.truncated_normal_initializer(stddev=0.001)
 
@@ -30,22 +30,22 @@ def build_model(is_training, sentences, params):
         context = tf.nn.embedding_lookup(embedding_matrix, context)
         question = tf.nn.embedding_lookup(embedding_matrix, question)
         reply = tf.nn.embedding_lookup(embedding_matrix, reply)
-        personal_info = tf.nn.embedding_lookup(embedding_matrix, personal_info)
-        personal_info = tf.reshape(personal_info, [-1, 5, 40, params.embedding_size])
+        # personal_info = tf.nn.embedding_lookup(embedding_matrix, personal_info)
+        # personal_info = tf.reshape(personal_info, [-1, 5, 40, params.embedding_size])
 
         context = tf.reduce_mean(context, axis=1)  # [None, 300]
         question = tf.reduce_mean(question, axis=1)  # [None, 300]
         reply = tf.reduce_mean(reply, axis=1)  # [None, 300]
-        personal_info = tf.reduce_mean(personal_info, axis=2)  # [None, 5, 300]
+        # personal_info = tf.reduce_mean(personal_info, axis=2)  # [None, 5, 300]
 
-    with tf.name_scope("closest_fact"):
-        dot_product = tf.matmul(tf.expand_dims(reply, 1), personal_info, transpose_b=True)  # [None, 5]
-        dot_product = tf.reshape(dot_product, [-1, 5])
-        max_fact_id = tf.argmax(dot_product, axis=1)
-        mask = tf.cast(tf.one_hot(max_fact_id, 5), tf.bool)
-        closest_info = tf.boolean_mask(personal_info, mask, axis=0)
+    # with tf.name_scope("closest_fact"):
+    #     dot_product = tf.matmul(tf.expand_dims(reply, 1), personal_info, transpose_b=True)  # [None, 5]
+    #     dot_product = tf.reshape(dot_product, [-1, 5])
+    #     max_fact_id = tf.argmax(dot_product, axis=1)
+    #     mask = tf.cast(tf.one_hot(max_fact_id, 5), tf.bool)
+    #     closest_info = tf.boolean_mask(personal_info, mask, axis=0)
 
-    concatenated = tf.concat([context, question, reply, closest_info], axis=1)
+    concatenated = tf.concat([context, question, reply], axis=1)  # closest_info
 
     with tf.variable_scope('fc_0'):
         dense0 = tf.layers.dense(concatenated, 1024, activation=tf.nn.relu)
