@@ -85,11 +85,12 @@ def model_fn(features, labels, mode, params):
         predictions = {'predictions': preds}
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
+    # TODO: labels shape is crazy
     labels = tf.cast(labels, tf.int64)
     labels_onehot = tf.one_hot(labels, 2)
 
     loss = tf.reduce_mean(
-        tf.losses.softmax_cross_entropy(onehot_labels=tf.reshape(labels_onehot, [-1, 2]), logits=tf.reshape(preds, [-1, 2]))
+        tf.losses.softmax_cross_entropy(onehot_labels=tf.reshape(labels_onehot, [-1, 2]), logits=preds)
     )
     acc, acc_op = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(preds, axis=-1), name='acc')
 
