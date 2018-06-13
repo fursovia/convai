@@ -82,7 +82,9 @@ def model_fn(features, labels, mode, params):
         preds = build_model(is_training, features, params)
 
     if mode == tf.estimator.ModeKeys.PREDICT:
-        predictions = {'predictions': preds}
+        predictions = {'predictions': preds[:, 1],
+                       'y_pred': tf.argmax(preds, axis=1)}
+
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
     # TODO: labels shape is crazy
