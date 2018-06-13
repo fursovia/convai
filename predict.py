@@ -47,6 +47,6 @@ if __name__ == '__main__':
                                          yield_single_examples=False)
 
     for i, batch in enumerate(test_predictions):
-        best_id = i * np.argmax(batch['predictions'])
+        best_id = 10 * i + np.argmax(batch['predictions'])
         print('Most likely answer id = {}'.format(best_id))
         # print('Best raw reply: {}'.format(raw_test_data[best_id]))
