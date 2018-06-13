@@ -245,7 +245,7 @@ if __name__ == '__main__':
                                                                         test_size=0.1,
                                                                         random_state=24)
 
-    data_path = 'data'
+    data_path = args.data_dir
     train_path = os.path.join(data_path, 'train')
     valid_path = os.path.join(data_path, 'eval')
 
