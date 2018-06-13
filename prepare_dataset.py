@@ -1,7 +1,6 @@
 """tokenize and vectorize"""
 
 import pickle
-import pandas as pd
 import os
 import argparse
 import numpy as np
@@ -10,11 +9,7 @@ from collections import Counter
 from nltk import ngrams
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
-from multiprocessing import Pool
-import nltk
 import re
-import string
-import spacy
 
 
 parser = argparse.ArgumentParser()
