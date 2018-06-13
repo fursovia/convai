@@ -85,13 +85,13 @@ def model_fn(features, labels, mode, params):
         predictions = {'predictions': preds}
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    labels = tf.cast(labels, tf.int64)
+    labels = tf.expand_dims(tf.cast(labels, tf.int64), -1)
     labels_onehot = tf.one_hot(labels, 2)
 
     loss = tf.reduce_mean(
-        tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=preds)
+        tf.nn.softmax_cross_entropy(labels=labels_onehot, logits=preds)
     )
-    acc, acc_op = tf.metrics.accuracy(labels=labels_onehot, predictions=tf.argmax(preds, axis=-1), name='acc')
+    acc, acc_op = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(preds, axis=-1), name='acc')
 
     if mode == tf.estimator.ModeKeys.EVAL:
         with tf.variable_scope("metrics"):
