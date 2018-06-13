@@ -190,7 +190,9 @@ if __name__ == '__main__':
     word2idx.update(uni2idx)
     word2idx.update(bi2idx)
 
-    pickle.dump(word2idx, open(os.path.join(args.data_dir, 'word2idx.pkl'), 'wb'))
+    word2idx_path = os.path.join(args.data_dir, 'word2idx.pkl')
+    pickle.dump(word2idx, open(word2idx_path, 'wb'))
+    print('word2idx file saved at {}'.format(word2idx_path))
 
     # векторизуем текст
     Y = []
