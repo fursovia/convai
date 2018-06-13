@@ -47,8 +47,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    train_raw_data_path = os.path.join(args.data_dir, 'train_both_original_no_cands.txt')
-    valid_raw_data_path = os.path.join(args.data_dir, 'valid_both_original_no_cands.txt')
+    train_raw_data_path = os.path.join(args.data_dir, 'initial/train_both_original_no_cands.txt')
+    valid_raw_data_path = os.path.join(args.data_dir, 'initial/valid_both_original_no_cands.txt')
 
     with open(train_raw_data_path, 'r') as file:
         train_raw_data = file.readlines()
