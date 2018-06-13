@@ -82,17 +82,17 @@ def model_fn(features, labels, mode, params):
         preds = build_model(is_training, features, params)
 
     if mode == tf.estimator.ModeKeys.PREDICT:
-        predictions = {'predictions': preds[:, 1],
+        predictions = {'y_prob': preds[:, 1],
                        'y_pred': tf.argmax(preds, axis=1)}
 
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
     # TODO: labels shape is crazy
     labels = tf.cast(labels, tf.int64)
-    labels_onehot = tf.one_hot(labels, 2)
+    one_hot_labels = tf.reshape(tf.one_hot(labels, 2), [-1, 2])
 
     loss = tf.reduce_mean(
-        tf.losses.softmax_cross_entropy(onehot_labels=tf.reshape(labels_onehot, [-1, 2]), logits=preds)
+        tf.losses.softmax_cross_entropy(onehot_labels=one_hot_labels, logits=preds)
     )
     acc, acc_op = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(preds, axis=-1), name='acc')
 
@@ -102,18 +102,15 @@ def model_fn(features, labels, mode, params):
 
         return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
-    tf.summary.scalar('loss', loss)
+    # tf.summary.scalar('loss', loss)
     tf.summary.scalar('accuracy', acc_op)
 
-    optimizer = tf.train.AdamOptimizer(params.learning_rate)
-
-    global_step = tf.train.get_global_step()
-
+    global_step = tf.train.get_global_step()  # number of batches seen so far
     train_op = tf.contrib.layers.optimize_loss(
         loss=loss,
         global_step=global_step,
         learning_rate=params.learning_rate,
-        optimizer=optimizer
+        optimizer=tf.train.AdamOptimizer()
     )
 
     return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
