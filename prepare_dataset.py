@@ -190,8 +190,7 @@ if __name__ == '__main__':
     word2idx.update(uni2idx)
     word2idx.update(bi2idx)
 
-    # print(uni_counter.most_common(10))
-    # print(bi_counter.most_common(10))
+    pickle.dump(word2idx, open(os.path.join(args.data_dir, 'word2idx.pkl'), 'wb'))
 
     # векторизуем текст
     Y = []
