@@ -41,11 +41,12 @@ def build_model(is_training, sentences, params):
     with tf.name_scope("closest_fact"):
         dot_product = tf.matmul(tf.expand_dims(reply, 1), personal_info, transpose_b=True)  # [None, 5]
         dot_product = tf.reshape(dot_product, [-1, 5])
+        max_dot_product = tf.reduce_max(dot_product, axis=1, keep_dims=False)  # how close?
         max_fact_id = tf.argmax(dot_product, axis=1)
         mask = tf.cast(tf.one_hot(max_fact_id, 5), tf.bool)
         closest_info = tf.boolean_mask(personal_info, mask, axis=0)
 
-    concatenated = tf.concat([context, question, reply, closest_info], axis=1)
+    concatenated = tf.concat([context, question, reply, closest_info, max_dot_product], axis=1)
 
     with tf.variable_scope('fc_0'):
         dense0 = tf.layers.dense(concatenated, 1024, activation=tf.nn.relu)
