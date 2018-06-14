@@ -2,6 +2,8 @@
 
 import tensorflow as tf
 from model.attention_layer import attention
+from model.utils import get_embeddings
+
 
 def build_model(is_training, sentences, params):
     """Compute logits of the model (output distribution)
@@ -19,7 +21,10 @@ def build_model(is_training, sentences, params):
     reply = sentences[:, 120:160]
     personal_info = sentences[:, 160:360]
 
-    weights_initializer = tf.truncated_normal_initializer(stddev=0.001)
+    if is_training:
+        weights_initializer = get_embeddings(params)
+    else:
+        weights_initializer = None  # don't spend time on embeddings initialization
 
     with tf.name_scope("embedding"):
         embedding_matrix = tf.get_variable("embedding_matrix", shape=[(params.vocab_size + 1), params.embedding_size],
@@ -43,7 +48,7 @@ def build_model(is_training, sentences, params):
     with tf.name_scope("closest_fact"):
         dot_product = tf.matmul(tf.expand_dims(reply, 1), personal_info, transpose_b=True)  # [None, 5]
         dot_product = tf.reshape(dot_product, [-1, 5])
-        max_dot_product = tf.reduce_max(dot_product, axis=1, keep_dims=False)  # how close?
+        max_dot_product = tf.reduce_max(dot_product, axis=1, keepdims=True)  # how close?
         max_fact_id = tf.argmax(dot_product, axis=1)
         mask = tf.cast(tf.one_hot(max_fact_id, 5), tf.bool)
         closest_info = tf.boolean_mask(personal_info, mask, axis=0)
@@ -105,7 +110,6 @@ def model_fn(features, labels, mode, params):
 
         return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
-    # tf.summary.scalar('loss', loss)
     tf.summary.scalar('accuracy', acc_op)
 
     global_step = tf.train.get_global_step()  # number of batches seen so far
