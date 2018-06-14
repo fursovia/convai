@@ -43,7 +43,7 @@ if __name__ == '__main__':
                                                        shuffle=False)
 
     test_predictions = estimator.predict(test_input_fn,
-                                         predict_keys=['predictions'],
+                                         predict_keys=['y_prob'],
                                          yield_single_examples=False)
 
     for i, batch in enumerate(test_predictions):
