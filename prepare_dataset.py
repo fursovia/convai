@@ -170,29 +170,33 @@ if __name__ == '__main__':
         pass
 
     # получаем словарь
-    num_words = int(args.vocab_size / 2)
-    num_bigrams = int(args.vocab_size / 2)
-
-    corpus = all_infos_cleaned + all_utterances_cleaned
-    words = ' '.join(corpus).split()
-    bigrams = ngrams(words, 2)
-
-    uni_counter = Counter(words)
-    bi_counter = Counter(bigrams)
-
-    print('Num of unigrams: {0}'.format(len(uni_counter.most_common())))
-    print('Num of bigrams: {0}'.format(len(bi_counter.most_common())))
-
-    uni2idx = {word[0]: i + 1 for i, word in enumerate(uni_counter.most_common(num_words))}
-    bi2idx = {word[0]: num_words + 1 + i for i, word in enumerate(bi_counter.most_common(num_bigrams))}
-
-    word2idx = {}
-    word2idx.update(uni2idx)
-    word2idx.update(bi2idx)
-
     word2idx_path = os.path.join(args.data_dir, 'word2idx.pkl')
-    pickle.dump(word2idx, open(word2idx_path, 'wb'))
-    print('word2idx file saved at {}'.format(word2idx_path))
+    if os.path.exists(word2idx_path):
+        print('Loading word2idx file from {}'.format(word2idx_path))
+        word2idx = pickle.load(open(word2idx_path, 'rb'))
+    else:
+        num_words = int(args.vocab_size / 2)
+        num_bigrams = int(args.vocab_size / 2)
+
+        corpus = all_infos_cleaned + all_utterances_cleaned
+        words = ' '.join(corpus).split()
+        bigrams = ngrams(words, 2)
+
+        uni_counter = Counter(words)
+        bi_counter = Counter(bigrams)
+
+        print('Num of unigrams: {0}'.format(len(uni_counter.most_common())))
+        print('Num of bigrams: {0}'.format(len(bi_counter.most_common())))
+
+        uni2idx = {word[0]: i + 1 for i, word in enumerate(uni_counter.most_common(num_words))}
+        bi2idx = {word[0]: num_words + 1 + i for i, word in enumerate(bi_counter.most_common(num_bigrams))}
+
+        word2idx = {}
+        word2idx.update(uni2idx)
+        word2idx.update(bi2idx)
+
+        pickle.dump(word2idx, open(word2idx_path, 'wb'))
+        print('word2idx file saved at {}'.format(word2idx_path))
 
     # векторизуем текст
     Y = []
@@ -293,4 +297,4 @@ if __name__ == '__main__':
     pickle.dump(info_vect, open(os.path.join(train_path, 'I.pkl'), 'wb'))
 
     print('Data saved at {}'.format(train_path))
-    print('and at {}'.format(valid_path))
+    print('...and at {}'.format(valid_path))
