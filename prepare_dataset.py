@@ -94,7 +94,6 @@ if __name__ == '__main__':
     all_utterances_cleaned = []
     for utt in all_utterances:
         all_utterances_cleaned.append(clean(utt))
-    all_utterances_cleaned = list(set(all_utterances_cleaned))
 
     all_infos_cleaned = []
     info_lens = []
@@ -160,6 +159,8 @@ if __name__ == '__main__':
     # получаем отрицательные примеры
 
     np.random.shuffle(all_utterances_cleaned)
+
+    print('Num of utterances = {}'.format(len(all_utterances_cleaned)))
 
     X_neg = X
     for i in range(len(X_neg)):
