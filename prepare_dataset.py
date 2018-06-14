@@ -11,20 +11,23 @@ from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 import re
 from nltk.stem import SnowballStemmer
+from nltk.corpus import stopwords
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--features', default='N', help="Whether to do some feature engineering")
 parser.add_argument('--data_dir', default='data', help="Directory containing the dataset")
-parser.add_argument('--vocab_size', type=int, default=15000)
+parser.add_argument('--vocab_size', type=int, default=16000)
 
 snowball_stemmer = SnowballStemmer("english")
+stop_words = stopwords.words("english")
+
 
 def clean(text):
     text = text.strip().lower()
     # оставляем только буквы
     text = re.sub("[^a-z' ]+", '', text)
-    return ' '.join(snowball_stemmer.stem(word) for word in text.split())
+    return ' '.join(snowball_stemmer.stem(word) for word in text.split() if word not in stop_words)
 
 
 def vectorize_text(text, word2idx, maxlen=40):
@@ -200,7 +203,9 @@ if __name__ == '__main__':
         word2idx.update(bi2idx)
 
         pickle.dump(word2idx, open(word2idx_path, 'wb'))
+        pickle.dump(corpus, open(os.path.join(args.data_dir, 'corpus.pkl'), 'wb'))
         print('word2idx file saved at {}'.format(word2idx_path))
+        print('corpus file saved at {}'.format(args.data_dir))
 
     # векторизуем текст
     Y = []
