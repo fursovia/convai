@@ -22,7 +22,10 @@ def build_model(is_training, sentences, params):
     personal_info = sentences[:, 160:360]
 
     if is_training:
-        weights_initializer = get_embeddings(params)
+        if params.pretrained:
+            weights_initializer = get_embeddings(params)
+        else:
+            weights_initializer = tf.truncated_normal_initializer(stddev=0.001)
     else:
         weights_initializer = None  # don't spend time on embeddings initialization
 
