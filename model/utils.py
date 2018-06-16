@@ -5,6 +5,7 @@ import os
 import numpy as np
 import pickle
 import fasttext
+import tensorflow as tf
 
 
 class Params():
@@ -53,3 +54,53 @@ def get_embeddings(params):
         embedding_matrix[i] = model[word]
 
     return embedding_matrix
+
+
+def _float_feature(value):
+    return tf.train.Feature(float_list=tf.train.FloatList(value=value))
+
+
+def _int64_feature(value):
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
+
+
+def _bytes_feature(value):
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+
+def convert_to_records(data, name, save_to):
+    """Converts a dataset to tfrecords."""
+    X, Y = data
+    num_examples = Y.shape[0]
+
+    filename = os.path.join(save_to, name + '.tfrecords')
+    print('Writing...', filename)
+
+    with tf.python_io.TFRecordWriter(filename) as writer:
+        for index in range(num_examples):
+            Y_ = Y[index]
+            X_ = X[index]
+            example = tf.train.Example(
+                features=tf.train.Features(
+                    feature={
+                        'label': _int64_feature([Y_]),
+                        'sent': _int64_feature(X_)
+                    }
+                )
+            )
+            writer.write(example.SerializeToString())
+
+
+def decode(serialized_example):
+    """Parses an image and label from the given serialized_example."""
+    features = tf.parse_single_example(
+        serialized_example,
+        features={
+            'label': tf.FixedLenFeature([], tf.int64),
+            'sent': tf.FixedLenFeature([200], tf.int64)
+        })
+
+    label = tf.cast(features['label'], tf.int64)
+    sent = tf.cast(features['sent'], tf.int64)
+
+    return sent, label
