@@ -23,14 +23,17 @@ snowball_stemmer = SnowballStemmer("english")
 stop_words = stopwords.words("english")
 
 
-def clean(text):
+def clean(text, with_stopwords=True):
     text = text.strip().lower()
-    # оставляем только буквы
-    text = re.sub("[^a-z' ]+", '', text)
-    return ' '.join(snowball_stemmer.stem(word) for word in text.split() if word not in stop_words)
+    text = re.sub('[^\w\s]', ' ', text)
+    text = re.sub('^\d+\s|\s\d+\s|\s\d+$', " <num> ", text)
+    if with_stopwords:
+        return ' '.join(snowball_stemmer.stem(word) for word in text.split())
+    else:
+        return ' '.join(snowball_stemmer.stem(word) for word in text.split() if word not in stop_words)
 
 
-def vectorize_text(text, word2idx, maxlen=40):
+def vectorize_text(text, word2idx, maxlen=20, truncating_type='post'):
     vec_seen = []
 
     words_ = text.split()
@@ -47,134 +50,197 @@ def vectorize_text(text, word2idx, maxlen=40):
         except:
             continue
 
-    return pad_sequences([vec_seen], maxlen=maxlen, truncating='post')[0]
+    return pad_sequences([vec_seen], maxlen=maxlen, truncating=truncating_type)[0]
 
 
 if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    train_raw_data_path = os.path.join(args.data_dir, 'initial/train_both_original_no_cands.txt')
-    valid_raw_data_path = os.path.join(args.data_dir, 'initial/valid_both_original_no_cands.txt')
+    train_raw_data_path1 = os.path.join(args.data_dir, 'initial/train_both_original.txt')
+    valid_raw_data_path1 = os.path.join(args.data_dir, 'initial/valid_both_original.txt')
 
-    with open(train_raw_data_path, 'r', encoding='utf-8') as file:
-        train_raw_data = file.readlines()
+    train_raw_data_path2 = os.path.join(args.data_dir, 'initial/train_both_revised.txt')
+    valid_raw_data_path2 = os.path.join(args.data_dir, 'initial/valid_both_revised.txt')
 
-    with open(valid_raw_data_path, 'r', encoding='utf-8') as file:
-        valid_raw_data = file.readlines()
+    with open(train_raw_data_path1, 'r', encoding='utf-8') as file:
+        train_raw_data1 = file.readlines()
+
+    with open(valid_raw_data_path1, 'r', encoding='utf-8') as file:
+        valid_raw_data1 = file.readlines()
+
+    with open(train_raw_data_path2, 'r', encoding='utf-8') as file:
+        train_raw_data2 = file.readlines()
+
+    with open(valid_raw_data_path2, 'r', encoding='utf-8') as file:
+        valid_raw_data2 = file.readlines()
+
+    train_raw_data = train_raw_data1 + train_raw_data2
+    valid_raw_data = valid_raw_data1 + valid_raw_data2
 
     raw_data = train_raw_data + valid_raw_data
 
-    pers_info_attrs = ['your persona:', 'partner\'s persona:']
+    path1 = os.path.join(args.data_dir, 'dials.pkl')
+    path2 = os.path.join(args.data_dir, 'infos.pkl')
+    path3 = os.path.join(args.data_dir, 'cands.pkl')
 
-    # находим все диалоги
-    dialogs = []
-    personal_infos = []
-    all_utterances = []
+    if os.path.exists(path1) and os.path.exists(path2) and os.path.exists(path3):
+        cleaned_dials = pickle.load(open(path1, 'rb'))
+        cleaned_infos = pickle.load(open(path2, 'rb'))
+        cleaned_cands = pickle.load(open(path3, 'rb'))
 
-    for i, line in tqdm(enumerate(raw_data)):
-        if line[:2] == '1 ':  # line starts with
-            if i != 0:
-                dialogs.append(dialog)
-                infos = [first_persona, second_persona]
-                personal_infos.append(infos)
+    else:
+        # находим все диалоги
+        dialogs = []
+        personal_infos = []
+        candidates = []
+        all_utterances = []
 
-            first_persona = []
-            second_persona = []
-            dialog = []
+        for i, line in tqdm(enumerate(raw_data)):
+            if line.startswith('1 '):
+                if i != 0:
+                    dialogs.append(dialog)
+                    infos = [first_persona, second_persona]
+                    personal_infos.append(infos)
+                    candidates.append(candidates_)
 
-        if pers_info_attrs[0] in line:
-            attr = ' '.join(line.split(':')[1:])
-            first_persona.append(attr)
-        elif pers_info_attrs[1] in line:
-            attr = ' '.join(line.split(':')[1:])
-            second_persona.append(attr)
-        else:
-            quest_reply = line[2:].split('\t')
-            all_utterances.extend(quest_reply)
-            dialog.extend(quest_reply)
+                first_persona = []
+                second_persona = []
+                dialog = []
+                candidates_ = []
 
-    all_utterances_cleaned = []
-    for utt in all_utterances:
-        all_utterances_cleaned.append(clean(utt))
+            if 'your persona:' in line:
+                attr = ' '.join(line.split(':')[1:])
+                first_persona.append(attr)
+            elif 'partner\'s persona:' in line:
+                attr = ' '.join(line.split(':')[1:])
+                second_persona.append(attr)
+            else:
+                splitted_line = line[2:].split('\t')
+                quest_reply = splitted_line[:2]
+                cands = splitted_line[3].split('|')
 
-    all_infos_cleaned = []
-    info_lens = []
-    for infos in personal_infos:
-        len1, len2 = list(map(len, infos))
-        info_lens.append(len1)
-        info_lens.append(len2)
-        for j in infos:
-            for i in j:
-                all_infos_cleaned.append(clean(i))
-    all_infos_cleaned = list(set(all_infos_cleaned))
+                dialog.extend(quest_reply)
+                all_utterances.extend(quest_reply)
+                candidates_.append(cands)
 
-    print('Mean info len = {}'.format(np.mean(info_lens)))
-    print('Median info len = {}'.format(np.median(info_lens)))
-    print('Max info len = {}'.format(np.max(info_lens)))
-    print('Min info len = {}'.format(np.min(info_lens)))
+        print('num of dialogs = {}'.format(len(dialogs)))
+        print('num of personal infos = {}'.format(len(personal_infos)))
+        print('num of candidates = {}'.format(len(candidates)))
 
-    # чистим диалоги и персональную инфу
-    cleaned_dials = []
-    cleaned_infos = []
+        print('cleaning utterances...')
+        all_utterances_cleaned = []
+        for utt in tqdm(all_utterances):
+            all_utterances_cleaned.append(clean(utt))
 
-    for i, dialog in enumerate(tqdm(dialogs)):
-        cleaned_dial = []
+        # чистим диалоги и персональную инфу
+        cleaned_dials = []
+        cleaned_infos = []
+        cleaned_cands = []
 
-        first_cleaned = []
-        second_cleaned = []
-        first_info, second_info = personal_infos[i]
-        for info in first_info:
-            cleaned_info = clean(info)
-            first_cleaned.append(cleaned_info)
-        for info in second_info:
-            cleaned_info = clean(info)
-            second_cleaned.append(cleaned_info)
-        cleaned_infos.append([first_cleaned, second_cleaned])
+        for i, dialog in enumerate(tqdm(dialogs)):
+            cleaned_dial = []
+            first_cleaned = []
+            second_cleaned = []
+            first_info, second_info = personal_infos[i]
 
-        for idx, mes in enumerate(dialog):
-            cleaned_mes = clean(mes)
-            cleaned_dial.append(cleaned_mes)
-        cleaned_dials.append(cleaned_dial)
+            for info in first_info:
+                cleaned_info = clean(info)
+                first_cleaned.append(cleaned_info)
+
+            for info in second_info:
+                cleaned_info = clean(info)
+                second_cleaned.append(cleaned_info)
+
+            cleaned_infos.append([first_cleaned, second_cleaned])
+
+            for idx, mes in enumerate(dialog):
+                cleaned_mes = clean(mes)
+                cleaned_dial.append(cleaned_mes)
+            cleaned_dials.append(cleaned_dial)
+
+            curr_cands = candidates[i]
+            cleaned_cands_ = []
+            for cand in curr_cands:
+                cleaned_mes = []
+                for mes in cand:
+                    cleaned_mes.append(clean(mes))
+                cleaned_cands_.append(cleaned_mes)
+            cleaned_cands.append(cleaned_cands_)
+
+        print('num of dialogs = {}'.format(len(cleaned_dials)))
+        print('num of personal infos = {}'.format(len(cleaned_infos)))
+        print('num of candidates = {}'.format(len(cleaned_cands)))
+
+        pickle.dump(cleaned_dials, open(os.path.join(args.data_dir, 'dials.pkl'), 'wb'))
+        pickle.dump(cleaned_infos, open(os.path.join(args.data_dir, 'infos.pkl'), 'wb'))
+        pickle.dump(cleaned_cands, open(os.path.join(args.data_dir, 'cands.pkl'), 'wb'))
 
     # диалог начинает другой человек, а мы отвечаем
     X = []
+    Y = []
 
     for i, dialog in enumerate(tqdm(cleaned_dials)):
-
         for idx, mes in enumerate(dialog):
             if idx % 2 == 0:
                 personal_info = cleaned_infos[i][1]
             else:
                 personal_info = cleaned_infos[i][0]
 
-            if idx > 1:
-                context = ' '.join(dialog[:(idx - 1)])
+            if idx == 1:
+                context = ''
+            if idx == 2:
+                context_len = 1
+                context = ' '.join(dialog[(idx - 1 - context_len):(idx - 1)])
+            if idx == 3:
+                context_len = 2
+                context = ' '.join(dialog[(idx - 1 - context_len):(idx - 1)])
+            if idx > 3:
+                context_len = 3
+                context = ' '.join(dialog[(idx - 1 - context_len):(idx - 1)])
+
+            if idx >= 1:
                 question = dialog[idx - 1]
                 reply = dialog[idx]
                 x_small = [context, question, reply, personal_info]
                 X.append(x_small)
-            else:
-                continue
+                Y.append(1)
 
-    print('Num of positive examples = {}'.format(len(X)))
-
-    # получаем отрицательные примеры
-
-    np.random.shuffle(all_utterances_cleaned)
-
-    print('Num of utterances = {}'.format(len(all_utterances_cleaned)))
-
-    X_neg = X
-    for i in range(len(X_neg)):
-        X_neg[i][2] = clean(all_utterances_cleaned[i])  # рандомный ответ
-
-    print('Num of negative examples = {}'.format(len(X_neg)))
-
+                if idx % 2 == 1:
+                    idxx = int(idx/2)
+                    neg_cands = cleaned_cands[i]
+                    curr_negs = neg_cands[idxx]  # 20 кандидатов
+                    for cand in curr_negs:
+                        x_small = [context, question, cand, personal_info]
+                        X.append(x_small)
+                        Y.append(0)
+                # VERY SLOW
+                # else:
+                #     curr_negs = np.random.choice(all_utterances_cleaned, 20, replace=False)
+                #     for cand in curr_negs:
+                #         x_small = [context, question, cand, personal_info]
+                #         X.append(x_small)
+                #         Y.append(0)
 
     # TODO: придумать фичи
     if args.features == 'Y':
         pass
+
+    corpus = []
+    for i in range(len(cleaned_dials)):
+        dial = cleaned_dials[i]
+        infos = cleaned_infos[i]
+        cands_ = cleaned_cands[i]
+        for mes in dial:
+            corpus.append(mes)
+        for inf_ in infos:
+            for mes in inf_:
+                corpus.append(mes)
+        for c in cands_:
+            for mes in c:
+                corpus.append(mes)
+
+    corpus = list(set(corpus))
 
     # получаем словарь
     word2idx_path = os.path.join(args.data_dir, 'word2idx.pkl')
@@ -185,7 +251,6 @@ if __name__ == '__main__':
         num_words = int(args.vocab_size / 2)
         num_bigrams = int(args.vocab_size / 2)
 
-        corpus = all_infos_cleaned + all_utterances_cleaned
         words = ' '.join(corpus).split()
         bigrams = ngrams(words, 2)
 
@@ -208,24 +273,19 @@ if __name__ == '__main__':
         print('corpus file saved at {}'.format(args.data_dir))
 
     # векторизуем текст
-    Y = []
     context_vect = []
     question_vect = []
     reply_vect = []
     info_vect = []
 
     for i, dial in enumerate(tqdm(X)):
-        cont = vectorize_text(dial[0], word2idx, 80)
+        cont = vectorize_text(dial[0], word2idx, 60, 'pre')
         ques = vectorize_text(dial[1], word2idx)
         reply = vectorize_text(dial[2], word2idx)
-        neg_reply = vectorize_text(X_neg[i][2], word2idx)
 
         context_vect.append(cont)
         question_vect.append(ques)
         reply_vect.append(reply)
-        Y.append(1)
-        reply_vect.append(neg_reply)
-        Y.append(0)
 
         info_ = dial[3]
         for j in range(5):  # 5 фактов о каждом
@@ -235,15 +295,11 @@ if __name__ == '__main__':
             except IndexError:
                 info_vect.append(np.zeros_like(ques))  # длина вопроса равна длине факта
 
-    context_vect = context_vect + context_vect
-    question_vect = question_vect + question_vect
-    info_vect = info_vect + info_vect
-
-    context_vect = np.array(context_vect, int)
-    question_vect = np.array(question_vect, int)
-    reply_vect = np.array(reply_vect, int)
-    info_vect = np.array(info_vect).reshape(-1, 200)
-    Y = np.array(Y, int)
+    context_vect = np.array(context_vect, int).reshape(-1, 60)
+    question_vect = np.array(question_vect, int).reshape(-1, 20)
+    reply_vect = np.array(reply_vect, int).reshape(-1, 20)
+    info_vect = np.array(info_vect).reshape(-1, 100)
+    Y = np.array(Y, int).reshape(-1, 1)
 
     print('Context shape = {}'.format(context_vect.shape))
     print('Question shape = {}'.format(question_vect.shape))

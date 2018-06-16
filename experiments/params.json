@@ -2,7 +2,9 @@
     "learning_rate": 0.001,
     "batch_size": 4,
     "num_epochs": 10,
-    "vocab_size": 15000,
+    "vocab_size": 16000,
     "embedding_size": 300,
-    "save_summary_steps": 10
+    "save_summary_steps": 10,
+    "data_path": "data",
+    "pretrained": true
 }

@@ -16,10 +16,10 @@ def build_model(is_training, sentences, params):
     Returns:
         output: (tf.Tensor) output of the model
     """
-    context = sentences[:, :80]
-    question = sentences[:, 80:120]
-    reply = sentences[:, 120:160]
-    personal_info = sentences[:, 160:360]
+    context = sentences[:, :60]
+    question = sentences[:, 60:80]
+    reply = sentences[:, 80:100]
+    personal_info = sentences[:, 100:200]
 
     if is_training:
         if params.pretrained:
@@ -98,7 +98,6 @@ def model_fn(features, labels, mode, params):
 
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    # TODO: labels shape is crazy
     labels = tf.cast(labels, tf.int64)
     one_hot_labels = tf.reshape(tf.one_hot(labels, 2), [-1, 2])
 
