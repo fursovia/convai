@@ -30,6 +30,7 @@ class DSSMAgent(Agent):
         self.episode_done = True
         self.estimator = self.create_model()
         self.opt = opt
+        print('___________________________________________________________ASFDASFAaKAJDSFKALSJFHNAKLSJFHNALSJF')
 
     def txt2vec(self, txt):
         return np.array(self.dict.txt2vec(txt)).astype(np.int32)
@@ -81,6 +82,8 @@ class DSSMAgent(Agent):
         return estimator
 
     def predict(self, some_dicts):
+        print('_ASFDASFAaKAJDSFKALSJFHNAKLSJFHNALSJF__________________________________________________________')
+
         word2idx = pickle.load(open(os.path.join(self.opt['data_dir'], 'word2idx.pkl'), 'rb'))
 
         data_to_predict = []
