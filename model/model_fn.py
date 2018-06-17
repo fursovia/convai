@@ -3,8 +3,8 @@
 import tensorflow as tf
 from model.attention_layer import attention
 from model.utils import get_embeddings
-from tensorflow.nn.rnn_cell import BasicLSTMCell
-from tensorflow.nn.rnn_cell import GRUCell
+from tensorflow.contrib.rnn import BasicLSTMCell
+from tensorflow.contrib.rnn import GRUCell
 
 
 def build_model(is_training, sentences, params):
