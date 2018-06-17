@@ -11,6 +11,7 @@ from parlai.core.agents import Agent
 from parlai.core.dict import DictionaryAgent
 from tensorflow.python.client import device_lib
 
+
 class DSSMAgent(Agent):
 
     @staticmethod
@@ -100,7 +101,6 @@ class DSSMAgent(Agent):
                                                            shuffle=False)
 
         test_predictions = self.estimator.predict(test_input_fn,
-                                                  predict_keys=['y_prob'],
                                                   yield_single_examples=False)
         output = []
 
