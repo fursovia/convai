@@ -48,7 +48,7 @@ class DSSMAgent(Agent):
     def vec2txt(self, vec):
         return self.dict.vec2txt(vec)
 
-    def observe(self, observation):
+    def observe1(self, observation):
         observation = copy.deepcopy(observation)
         # At this moment `self.episode_done` is the previous example
         if not self.episode_done:
@@ -63,6 +63,18 @@ class DSSMAgent(Agent):
         # The last example of an episode is provided as `{'episode_done': True}`
         self.episode_done = observation['episode_done']
         return observation
+
+    def observe(self, observation):
+        """Save observation for act.
+        If multiple observations are from the same episode, concatenate them.
+        """
+        # shallow copy observation (deep copy can be expensive)
+        obs = observation.copy()
+        batch_idx = self.opt.get('batchindex', 0)
+        self.observation = obs
+        #self.answers[batch_idx] = None
+        return obs
+
 
     def create_model(self):
 
@@ -159,10 +171,10 @@ class DSSMAgent(Agent):
 
 #         for i in range(len(preds)):
 #             batch_reply[valid_inds[i]]['text'] = preds[i]
-        for ex, ob in zip(batch_reply, observations):
+        for i in range(len(batch_reply)):
             # print(ob)
-            ex['text_candidates'] = ob['label_candidates']
-
+            batch_reply[i]['text_candidates'] = list(observations[i]['label_candidates'])
+            batch_reply[i]['text'] = batch_reply[i]['text_candidates'][0]
 
         return batch_reply # [{'text': 'bedroom', 'id': 'RNN'}, ...]
 
