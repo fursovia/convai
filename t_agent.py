@@ -118,6 +118,7 @@ class DSSMAgent(Agent):
         #                                                    shuffle=False)
 
         preds = self.predictor({'text': data_to_predict})
+        print(preds)
         predis = preds['predict'].reshape(-1, 20)
 
         # test_predictions = self.estimator.predict(test_input_fn,
