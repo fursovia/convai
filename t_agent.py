@@ -113,16 +113,7 @@ class DSSMAgent(Agent):
 
         data_to_predict = np.array(data_to_predict, int).reshape(-1, 200)
 
-        # подаем по 20 кандидатов и находим лучшие из них
-        # test_input_fn = tf.estimator.inputs.numpy_input_fn(data_to_predict,
-        #                                                    num_epochs=1,
-        #                                                    batch_size=20,
-        #                                                    shuffle=False)
-
         test_predictions = self.predictor({'text': data_to_predict})['y_prob']
-        print(test_predictions)
-        # test_predictions = self.estimator.predict(test_input_fn,
-        #                                           yield_single_examples=False)
 
         output = []
         for i, leng in enumerate(lengis):
@@ -133,36 +124,6 @@ class DSSMAgent(Agent):
             test_predictions = test_predictions[leng:]
 
         return output
-
-
-    def batchify(self, obs):
-        """Convert batch observations `text` and `label` to rank 2 tensor `xs` and `ys`
-        """
-        def txt2np(txt, use_offset=True):
-            vec = [self.txt2vec(t) for t in txt]
-            max_len = max([len(v) for v in vec])
-            arr = np.zeros((len(vec), max_len)).astype(np.int32) # 0 filled rank 2 tensor
-            for i, v in enumerate(vec):
-                offset = 0
-                if use_offset:
-                    offset = max_len - len(v) # Right justified
-                for j, idx in enumerate(v):
-                    arr[i][j + offset] = idx
-            return arr # batch x time
-
-        exs = [ex for ex in obs if 'text' in ex]
-        valid_inds = [i for i, ex in enumerate(obs) if 'text' in ex]
-
-        if len(exs) == 0:
-            return (None,)*3
-
-        xs = [ex['text'] for ex in exs]
-        xs = txt2np(xs)
-        ys = None
-        if 'labels' in exs[0]:
-            ys = [' '.join(ex['labels']) for ex in exs]
-            ys = txt2np(ys, use_offset=False)
-        return xs, ys, valid_inds
 
     def batch_act(self, observations):
         # observations:
