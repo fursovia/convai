@@ -84,12 +84,12 @@ class DSSMAgent(Agent):
 
         # ОПРЕДЕЛЯЕМ МОДЕЛЬ
         tf.logging.info("Creating the model...")
-        config = tf.estimator.RunConfig(tf_random_seed=230,
-                                        model_dir=self.opt['model_dir'])
+        config = tf.estimator.RunConfig(tf_random_seed=230, model_dir=self.opt['model_dir'])
 
         estimator = tf.estimator.Estimator(model_fn, params=self.params, config=config)
 
         return estimator
+
 
     def create_predictor(self):
         self.predictor = tf.contrib.predictor.from_estimator(
@@ -117,7 +117,7 @@ class DSSMAgent(Agent):
         #                                                    batch_size=20,
         #                                                    shuffle=False)
 
-        preds = self.predictor({'text': data_to_predict[0]})
+        preds = self.predictor({'text': data_to_predict})
         preds = preds.reshape(-1, 20)
 
         # test_predictions = self.estimator.predict(test_input_fn,

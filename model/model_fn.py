@@ -98,7 +98,11 @@ def model_fn(features, labels, mode, params):
         predictions = {'y_prob': preds[:, 1],
                        'y_pred': tf.argmax(preds, axis=1)}
 
-        return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+        return tf.estimator.EstimatorSpec(mode=mode,
+                                          predictions=predictions,
+                                          export_outputs={
+                                              'predict': tf.estimator.export.PredictOutput(predictions)
+                                          })
 
     # labels = tf.cast(labels, tf.int64)
     # one_hot_labels = tf.reshape(tf.one_hot(labels, 2), [-1, 2])
