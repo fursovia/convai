@@ -135,21 +135,13 @@ class DSSMAgent(Agent):
         #       [{'label_candidates': {'office', ...},
         #       'episode_done': False, 'text': 'Daniel ... \nWhere is Mary?',
         #       'labels': ('office',), 'id': 'babi:Task10k:1'}, ...]
+
         batchsize = len(observations)
         batch_reply = [{'id': self.id} for _ in range(batchsize)]
 
-#         xs, ys, valid_inds = self.batchify(observations)
-
-        # if xs is None:
-        #     return batch_reply
-        # else:
-        #     preds = self.predict(xs)
-
-#         for i in range(len(preds)):
-#             batch_reply[valid_inds[i]]['text'] = preds[i]
         for i in range(len(batch_reply)):
             # print(ob)
-            batch_reply[i]['text_candidates'] = list(observations[i]['label_candidates'])
+            batch_reply[i]['text_candidates'] = list(self.predict(observations[i]))
             batch_reply[i]['text'] = batch_reply[i]['text_candidates'][0]
 
         return batch_reply # [{'text': 'bedroom', 'id': 'RNN'}, ...]
