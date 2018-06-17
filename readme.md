@@ -1,4 +1,16 @@
-# ConvAI2 competition
+## Profile
+Team name: loopAI
+
+Model mame: DSSMAgent
+
+## Quickstart
+
+0. install ParlAI
+1. Clone this repository into ParlAI/projects/
+2. Download pretrained model from this [link](https://yadi.sk/d/h3X5HUU73Y2qZ7) and put all files in `experiments` folder
+3. Run `python eval_hits.py`
+5. On validation set you should get ** score
+
 
 ## Quickstart
 
@@ -23,13 +35,4 @@
 6. Использовать все типы фактов (revisited, original, other)
 7. Мало данных: делаем перевод и обратно на несколько разных языков
 
-## Profile
-Team name: loopAI
 
-Model mame: DSSMAgent
-
-## Instruciton for install 
-1. install ParlAI
-2. clone this repository into ParlAI/projects/
-3. go to ParlAI/projects/loopai and run "python eval_hits.py" (we have only eval hits)
-4. on validation you should get ** score

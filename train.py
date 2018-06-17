@@ -39,10 +39,14 @@ if __name__ == '__main__':
     else:
         distribution = None
 
+    session_config = tf.ConfigProto(device_count={'GPU': 1})
+    session_config.gpu_options.allow_growth = True
+
     config = tf.estimator.RunConfig(tf_random_seed=43,
                                     model_dir=args.model_dir,
                                     save_summary_steps=params.save_summary_steps,
-                                    train_distribute=distribution)
+                                    train_distribute=distribution,
+                                    session_config=session_config)
 
     estimator = tf.estimator.Estimator(model_fn,
                                        params=params,

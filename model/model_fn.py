@@ -47,17 +47,12 @@ def build_model(is_training, sentences, params):
         question = tf.nn.embedding_lookup(embedding_matrix, question)
         reply = tf.nn.embedding_lookup(embedding_matrix, reply)
         personal_info = tf.nn.embedding_lookup(embedding_matrix, personal_info)
-        # personal_info = tf.reshape(personal_info, [-1, 5, 20, params.embedding_size])
 
         info1 = tf.reshape(personal_info[:,:20], [-1, 20, params.embedding_size])
         info2 = tf.reshape(personal_info[:,20:40], [-1, 20, params.embedding_size])
         info3 = tf.reshape(personal_info[:,40:60], [-1, 20, params.embedding_size])
         info4 = tf.reshape(personal_info[:,60:80], [-1, 20, params.embedding_size])
         info5 = tf.reshape(personal_info[:,80:100], [-1, 20, params.embedding_size])
-
-        # question = tf.reduce_mean(question, axis=1)  # [None, 300]
-        # reply = tf.reduce_mean(reply, axis=1)  # [None, 300]
-        # personal_info = tf.reduce_mean(personal_info, axis=2)  # [None, 5, 300]
 
     with tf.variable_scope("GRU_encoder"):
         reply_gru = gru_encoder(reply)
@@ -84,15 +79,17 @@ def build_model(is_training, sentences, params):
         closest_info = tf.boolean_mask(reshaped_info, mask, axis=0)
 
     with tf.name_scope("context_attention"):
-        context_output = attention(context, 50)
+        enc_out_chars, _ = tf.nn.bidirectional_dynamic_rnn(BasicLSTMCell(256),
+                                                           BasicLSTMCell(256),
+                                                           context,
+                                                           dtype=tf.float32)
+
+        context_output = attention(enc_out_chars, 50)
 
     concatenated = tf.concat([context_output, question_gru, reply_gru, closest_info, max_dot_product], axis=1)
 
-    with tf.variable_scope('fc_0'):
-        dense0 = tf.layers.dense(concatenated, 1024, activation=tf.nn.relu)
-
     with tf.variable_scope('fc_1'):
-        dense1 = tf.layers.dense(dense0, 512, activation=tf.nn.relu)
+        dense1 = tf.layers.dense(concatenated, 512, activation=tf.nn.relu)
 
     with tf.variable_scope('fc_2'):
         dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)
@@ -122,8 +119,6 @@ def model_fn(features, labels, mode, params):
                                               'predict': tf.estimator.export.PredictOutput(predictions)
                                           })
 
-    # labels = tf.cast(labels, tf.int64)
-    # one_hot_labels = tf.reshape(tf.one_hot(labels, 2), [-1, 2])
     one_hot_labels = tf.one_hot(labels, 2)
 
     loss = tf.reduce_mean(
