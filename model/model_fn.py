@@ -59,13 +59,13 @@ def build_model(is_training, sentences, params):
         # reply = tf.reduce_mean(reply, axis=1)  # [None, 300]
         # personal_info = tf.reduce_mean(personal_info, axis=2)  # [None, 5, 300]
 
-    with tf.name_scope("GRU_encoder"):
+    with tf.variable_scope("GRU_encoder"):
         reply_gru = gru_encoder(reply)
 
-    with tf.name_scope("GRU_encoder", reuse=True):
+    with tf.variable_scope("GRU_encoder", reuse=True):
         question_gru = gru_encoder(question)
 
-    with tf.name_scope("GRU_encoder", reuse=True):
+    with tf.variable_scope("GRU_encoder", reuse=True):
         info_encoder1 = gru_encoder(info1)
         info_encoder2 = gru_encoder(info2)
         info_encoder3 = gru_encoder(info3)
