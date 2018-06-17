@@ -52,8 +52,8 @@ def get_coefs(word, *arr):
 
 
 def get_embeddings(params):
-    word2idx_file = os.path.join('data', 'word2idx.pkl')
-    fasttext_file = os.path.join('data', 'fasttext.vec')
+    word2idx_file = os.path.join('/data/i.fursov/convai/data', 'word2idx.pkl')
+    fasttext_file = os.path.join('/data/i.fursov/convai/data', 'fasttext.vec')
 
     word2idx = pickle.load(open(word2idx_file, 'rb'))
     embeddings_index = dict(get_coefs(*o.strip().split()) for o in open(fasttext_file, encoding='utf-8'))
