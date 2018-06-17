@@ -22,3 +22,12 @@
 5. Фичи (spacy, nltk) + свои фичи (расстояния и тд)
 6. Использовать все типы фактов (revisited, original, other)
 7. Мало данных: делаем перевод и обратно на несколько разных языков
+
+Team name: loopAI
+Model mame: DSSMAgent
+
+## Instruciton for install 
+1. install ParlAI
+2. clone this repository into ParlAI/projects/
+3. go to ParlAI/projects/loopai and run "python eval_hits.py"
+
