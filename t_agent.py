@@ -103,10 +103,12 @@ class DSSMAgent(Agent):
 
         data_to_predict = []
         candidates = []
+        lengis = []
 
         for dict_ in some_dicts:
             test_data, true_id, true_ans, raw_dial, cands = text2vec(dict_, word2idx)
             data_to_predict.append(test_data)
+            lengis.append(len(test_data))
             candidates.append(cands)
 
         data_to_predict = np.array(data_to_predict, int).reshape(-1, 200)
@@ -117,17 +119,18 @@ class DSSMAgent(Agent):
         #                                                    batch_size=20,
         #                                                    shuffle=False)
 
-        test_predictions = self.predictor({'text': data_to_predict})
-
+        test_predictions = self.predictor({'text': data_to_predict})['y_prob']
+        print(test_predictions)
         # test_predictions = self.estimator.predict(test_input_fn,
         #                                           yield_single_examples=False)
 
         output = []
-        for i, batch in enumerate(test_predictions):
-            sorted_elements = np.argsort(batch['y_prob'])[::-1]
+        for i, leng in enumerate(lengis):
+            sorted_elements = np.argsort(test_predictions[:leng])[::-1]
             cands = np.array(candidates[i], object)
             ppp = cands[sorted_elements]
             output.append(ppp)
+            del test_predictions[:leng]
 
         return output
 
