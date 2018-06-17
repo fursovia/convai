@@ -5,6 +5,7 @@ from model.utils import Params
 from model.model_fn import model_fn
 import pickle
 import numpy as np
+import copy
 
 from parlai.core.agents import Agent
 from parlai.core.dict import DictionaryAgent
@@ -158,8 +159,9 @@ class DSSMAgent(Agent):
 
 #         for i in range(len(preds)):
 #             batch_reply[valid_inds[i]]['text'] = preds[i]
-        for ex in batch_reply:
-            ex['text_candidates'] = observations['label_candidates']
+        for ex, ob in zip(batch_reply, observations):
+            print(ob)
+            ex['text_candidates'] = ob['label_candidates']
 
 
         return batch_reply # [{'text': 'bedroom', 'id': 'RNN'}, ...]
