@@ -117,15 +117,13 @@ class DSSMAgent(Agent):
         #                                                    batch_size=20,
         #                                                    shuffle=False)
 
-        preds = self.predictor({'text': data_to_predict})
-        print(preds)
-        predis = preds['predict'].reshape(-1, 20)
+        test_predictions = self.predictor({'text': data_to_predict})
 
         # test_predictions = self.estimator.predict(test_input_fn,
         #                                           yield_single_examples=False)
 
         output = []
-        for i, batch in enumerate(predis):
+        for i, batch in enumerate(test_predictions):
             sorted_elements = np.argsort(batch['y_prob'])[::-1]
             cands = np.array(candidates[i], object)
             ppp = cands[sorted_elements]
