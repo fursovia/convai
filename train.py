@@ -41,6 +41,7 @@ if __name__ == '__main__':
 
     session_config = tf.ConfigProto(device_count={'GPU': 1})
     session_config.gpu_options.allow_growth = True
+    # session_config.gpu_options.per_process_gpu_memory_fraction = 0.5
 
     config = tf.estimator.RunConfig(tf_random_seed=43,
                                     model_dir=args.model_dir,
