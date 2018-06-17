@@ -59,13 +59,13 @@ def build_model(is_training, sentences, params):
     concatenated = tf.concat([context_output, question, reply, closest_info, max_dot_product], axis=1)
 
     with tf.variable_scope('fc_0'):
-        dense0 = tf.layers.dense(concatenated, 1024, activation=tf.nn.relu)
+        dense0 = tf.layers.dense(concatenated, 1024, activation=tf.nn.elu)
 
     with tf.variable_scope('fc_1'):
-        dense1 = tf.layers.dense(dense0, 512, activation=tf.nn.relu)
+        dense1 = tf.layers.dense(dense0, 512, activation=tf.nn.elu)
 
     with tf.variable_scope('fc_2'):
-        dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)
+        dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.elu)
 
     with tf.variable_scope('fc_3'):
         dense3 = tf.layers.dense(dense2, 2, activation=tf.nn.softmax)

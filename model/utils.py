@@ -6,6 +6,15 @@ import numpy as np
 import pickle
 import fasttext
 import tensorflow as tf
+import re
+from nltk.stem import SnowballStemmer
+from nltk.corpus import stopwords
+from nltk import ngrams
+from keras.preprocessing.sequence import pad_sequences
+
+
+snowball_stemmer = SnowballStemmer("english")
+stop_words = stopwords.words("english")
 
 
 class Params():
@@ -104,3 +113,39 @@ def decode(serialized_example):
     sent = tf.cast(features['sent'], tf.int64)
 
     return sent, label
+
+
+def clean(text, with_stopwords=True):
+    text = text.strip().lower()
+    text = re.sub('[^\w\s]', ' ', text)
+    text = re.sub('^\d+\s|\s\d+\s|\s\d+$', " <num> ", text)
+    if with_stopwords:
+        return ' '.join(snowball_stemmer.stem(word) for word in text.split())
+    else:
+        return ' '.join(snowball_stemmer.stem(word) for word in text.split() if word not in stop_words)
+
+
+def vectorize_text(text, word2idx, maxlen=20, truncating_type='post'):
+    vec_seen = []
+
+    words_ = text.split()
+    bi_ = ngrams(words_, 2)
+
+    for word in words_:
+        try:
+            vec_seen.append(word2idx[word])
+        except:
+            continue
+    for bi in bi_:
+        try:
+            vec_seen.append(word2idx[bi])
+        except:
+            continue
+    return pad_sequences([vec_seen], maxlen=maxlen, truncating=truncating_type)[0]
+
+
+def text2vec(text, word2idx, dict_from_parlai):
+
+
+    text = clean(text)
+    return vectorize_text(text, word2idx)
