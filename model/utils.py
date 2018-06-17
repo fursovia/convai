@@ -160,7 +160,6 @@ def text2vec(dict_from_parlai, word2idx):
         cleaned_cands.append(clean(mes))
 
     for mes in splitted_text:
-        mes = clean(mes)
         if 'your persona:' in mes:
             personal_info.append(clean(' '.join(mes.split(':')[1:])))
         else:
