@@ -23,7 +23,9 @@
 6. Использовать все типы фактов (revisited, original, other)
 7. Мало данных: делаем перевод и обратно на несколько разных языков
 
+## Profile
 Team name: loopAI
+
 Model mame: DSSMAgent
 
 ## Instruciton for install 
