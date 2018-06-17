@@ -12,6 +12,15 @@ from parlai.core.dict import DictionaryAgent
 from tensorflow.python.client import device_lib
 
 
+class serving_input_fn:
+    def __init__(self):
+        self.features = tf.placeholder(tf.int64, shape=[None, 200])
+        self.receiver_tensors = {
+           'text': self.features,
+        }
+        self.receiver_tensors_alternatives = None
+
+
 class DSSMAgent(Agent):
 
     @staticmethod
@@ -31,6 +40,7 @@ class DSSMAgent(Agent):
         self.episode_done = True
         self.estimator = self.create_model()
         self.opt = opt
+        self.create_predictor()
 
     def txt2vec(self, txt):
         return np.array(self.dict.txt2vec(txt)).astype(np.int32)
@@ -81,6 +91,13 @@ class DSSMAgent(Agent):
 
         return estimator
 
+    def create_predictor(self):
+        self.predictor = tf.contrib.predictor.from_estimator(
+            self.estimator,
+            serving_input_fn
+        )
+
+
     def predict(self, some_dicts):
         word2idx = pickle.load(open(os.path.join(self.opt['data_dir'], 'word2idx.pkl'), 'rb'))
 
@@ -95,16 +112,19 @@ class DSSMAgent(Agent):
         data_to_predict = np.array(data_to_predict, int).reshape(-1, 200)
 
         # подаем по 20 кандидатов и находим лучшие из них
-        test_input_fn = self.estimator.inputs.numpy_input_fn(data_to_predict,
-                                                           num_epochs=1,
-                                                           batch_size=20,
-                                                           shuffle=False)
+        # test_input_fn = tf.estimator.inputs.numpy_input_fn(data_to_predict,
+        #                                                    num_epochs=1,
+        #                                                    batch_size=20,
+        #                                                    shuffle=False)
 
-        test_predictions = self.estimator.predict(test_input_fn,
-                                                  yield_single_examples=False)
+        preds = self.predictor(data_to_predict)
+        preds = preds.reshape(-1, 20)
+
+        # test_predictions = self.estimator.predict(test_input_fn,
+        #                                           yield_single_examples=False)
+
         output = []
-
-        for i, batch in enumerate(test_predictions):
+        for i, batch in enumerate(preds):
             sorted_elements = np.argsort(batch['y_prob'])[::-1]
             cands = np.array(candidates[i], object)
             ppp = cands[sorted_elements]
