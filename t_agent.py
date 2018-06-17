@@ -160,7 +160,7 @@ class DSSMAgent(Agent):
 #         for i in range(len(preds)):
 #             batch_reply[valid_inds[i]]['text'] = preds[i]
         for ex, ob in zip(batch_reply, observations):
-            print(ob)
+            # print(ob)
             ex['text_candidates'] = ob['label_candidates']
 
 
