@@ -31,73 +31,77 @@ def build_model(is_training, sentences, params):
     else:
         weights_initializer = None  # don't spend time on embeddings initialization
 
-    def gru_encoder(X):
-        _, words_final_state = tf.nn.dynamic_rnn(cell=GRUCell(256),
-                                                 inputs=X,
-                                                 dtype=tf.float32)
-        return words_final_state
+    if params.architecture == 1:
+        def gru_encoder(X):
+            _, words_final_state = tf.nn.dynamic_rnn(cell=GRUCell(256),
+                                                     inputs=X,
+                                                     dtype=tf.float32)
+            return words_final_state
 
-    with tf.name_scope("embedding"):
-        embedding_matrix = tf.get_variable("embedding_matrix", shape=[(params.vocab_size + 1), params.embedding_size],
-                                           initializer=weights_initializer,
-                                           trainable=True,
-                                           dtype=tf.float32)
+        with tf.name_scope("embedding"):
+            embedding_matrix = tf.get_variable("embedding_matrix", shape=[(params.vocab_size + 1), params.embedding_size],
+                                               initializer=weights_initializer,
+                                               trainable=True,
+                                               dtype=tf.float32)
 
-        context = tf.nn.embedding_lookup(embedding_matrix, context)
-        question = tf.nn.embedding_lookup(embedding_matrix, question)
-        reply = tf.nn.embedding_lookup(embedding_matrix, reply)
-        personal_info = tf.nn.embedding_lookup(embedding_matrix, personal_info)
+            context = tf.nn.embedding_lookup(embedding_matrix, context)
+            question = tf.nn.embedding_lookup(embedding_matrix, question)
+            reply = tf.nn.embedding_lookup(embedding_matrix, reply)
+            personal_info = tf.nn.embedding_lookup(embedding_matrix, personal_info)
 
-        info1 = tf.reshape(personal_info[:,:20], [-1, 20, params.embedding_size])
-        info2 = tf.reshape(personal_info[:,20:40], [-1, 20, params.embedding_size])
-        info3 = tf.reshape(personal_info[:,40:60], [-1, 20, params.embedding_size])
-        info4 = tf.reshape(personal_info[:,60:80], [-1, 20, params.embedding_size])
-        info5 = tf.reshape(personal_info[:,80:100], [-1, 20, params.embedding_size])
+            info1 = tf.reshape(personal_info[:,:20], [-1, 20, params.embedding_size])
+            info2 = tf.reshape(personal_info[:,20:40], [-1, 20, params.embedding_size])
+            info3 = tf.reshape(personal_info[:,40:60], [-1, 20, params.embedding_size])
+            info4 = tf.reshape(personal_info[:,60:80], [-1, 20, params.embedding_size])
+            info5 = tf.reshape(personal_info[:,80:100], [-1, 20, params.embedding_size])
 
-    with tf.variable_scope("GRU_encoder"):
-        reply_gru = gru_encoder(reply)
+        with tf.variable_scope("GRU_encoder"):
+            reply_gru = gru_encoder(reply)
 
-    with tf.variable_scope("GRU_encoder", reuse=True):
-        question_gru = gru_encoder(question)
+        with tf.variable_scope("GRU_encoder", reuse=True):
+            question_gru = gru_encoder(question)
 
-    with tf.variable_scope("GRU_encoder", reuse=True):
-        info_encoder1 = gru_encoder(info1)
-        info_encoder2 = gru_encoder(info2)
-        info_encoder3 = gru_encoder(info3)
-        info_encoder4 = gru_encoder(info4)
-        info_encoder5 = gru_encoder(info5)
+        with tf.variable_scope("GRU_encoder", reuse=True):
+            info_encoder1 = gru_encoder(info1)
+            info_encoder2 = gru_encoder(info2)
+            info_encoder3 = gru_encoder(info3)
+            info_encoder4 = gru_encoder(info4)
+            info_encoder5 = gru_encoder(info5)
 
-        concatenated_info = tf.concat([info_encoder1, info_encoder2, info_encoder3, info_encoder4, info_encoder5], axis=1)
-        reshaped_info = tf.reshape(concatenated_info, [-1, 5, 256])
+            concatenated_info = tf.concat([info_encoder1, info_encoder2, info_encoder3, info_encoder4, info_encoder5], axis=1)
+            reshaped_info = tf.reshape(concatenated_info, [-1, 5, 256])
 
-    with tf.name_scope("closest_fact"):
-        dot_product = tf.matmul(tf.expand_dims(reply_gru, 1), reshaped_info, transpose_b=True)  # [None, 5]
-        dot_product = tf.reshape(dot_product, [-1, 5])
-        max_dot_product = tf.reduce_max(dot_product, axis=1, keepdims=True)  # how close?
-        max_fact_id = tf.argmax(dot_product, axis=1)
-        mask = tf.cast(tf.one_hot(max_fact_id, 5), tf.bool)
-        closest_info = tf.boolean_mask(reshaped_info, mask, axis=0)
+        with tf.name_scope("closest_fact"):
+            dot_product = tf.matmul(tf.expand_dims(reply_gru, 1), reshaped_info, transpose_b=True)  # [None, 5]
+            dot_product = tf.reshape(dot_product, [-1, 5])
+            max_dot_product = tf.reduce_max(dot_product, axis=1, keepdims=True)  # how close?
+            max_fact_id = tf.argmax(dot_product, axis=1)
+            mask = tf.cast(tf.one_hot(max_fact_id, 5), tf.bool)
+            closest_info = tf.boolean_mask(reshaped_info, mask, axis=0)
 
-    with tf.name_scope("context_attention"):
-        enc_out_chars, _ = tf.nn.bidirectional_dynamic_rnn(BasicLSTMCell(256),
-                                                           BasicLSTMCell(256),
-                                                           context,
-                                                           dtype=tf.float32)
+        with tf.name_scope("context_attention"):
+            enc_out_chars, _ = tf.nn.bidirectional_dynamic_rnn(BasicLSTMCell(256),
+                                                               BasicLSTMCell(256),
+                                                               context,
+                                                               dtype=tf.float32)
 
-        context_output = attention(enc_out_chars, 50)
+            context_output = attention(enc_out_chars, 50)
 
-    concatenated = tf.concat([context_output, question_gru, reply_gru, closest_info, max_dot_product], axis=1)
+        concatenated = tf.concat([context_output, question_gru, reply_gru, closest_info, max_dot_product], axis=1)
 
-    with tf.variable_scope('fc_1'):
-        dense1 = tf.layers.dense(concatenated, 512, activation=tf.nn.relu)
+        with tf.variable_scope('fc_1'):
+            dense1 = tf.layers.dense(concatenated, 512, activation=tf.nn.relu)
 
-    with tf.variable_scope('fc_2'):
-        dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)
+        with tf.variable_scope('fc_2'):
+            dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)
 
-    with tf.variable_scope('fc_3'):
-        dense3 = tf.layers.dense(dense2, 2)
+        with tf.variable_scope('fc_3'):
+            dense3 = tf.layers.dense(dense2, 2)
 
-    return dense3
+        return dense3
+
+    if params.architecture == 2:
+        pass
 
 
 def model_fn(features, labels, mode, params):
