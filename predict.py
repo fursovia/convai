@@ -72,7 +72,7 @@ if __name__ == '__main__':
 
     for i, batch in enumerate(test_predictions):
         best_id = 10 * i + np.argmax(batch['y_prob'])
-        sorted_elements = np.argsort(batch['y_prob'])
+        sorted_elements = np.argsort(batch['y_prob'])[::-1]
         print('Most likely answer id = {}'.format(best_id))
         print('Sorted elements: {}'.format(sorted_elements))
         # print('Best raw reply: {}'.format(raw_test_data[best_id]))
