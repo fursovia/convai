@@ -74,10 +74,13 @@ if __name__ == '__main__':
         best_id = 10 * i + np.argmax(batch['y_prob'])
         sorted_elements = np.argsort(batch['y_prob'])[::-1]
         print('Most likely answer id = {}'.format(best_id))
+        print('True id: {}'.format(true_id))
         print('Sorted elements: {}'.format(sorted_elements))
+        print('---------------------------------------------------')
         print('Dialog: ')
         for mes in raw_dial:
             print(mes)
+        print('---------------------------------------------------')
         print('True answer: {}'.format(true_ans))
         print('Predicted answer: {}'.format(cands[best_id]))
         # print('Best raw reply: {}'.format(raw_test_data[best_id]))
