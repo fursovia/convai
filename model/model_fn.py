@@ -69,7 +69,7 @@ def build_model(is_training, sentences, params):
     #     dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.elu)
 
     with tf.variable_scope('fc_3'):
-        dense3 = tf.layers.dense(dense0, 2, activation=tf.nn.softmax)
+        dense3 = tf.layers.dense(dense0, 2)
 
     return dense3
 
@@ -105,6 +105,7 @@ def model_fn(features, labels, mode, params):
     loss = tf.reduce_mean(
         tf.losses.softmax_cross_entropy(onehot_labels=one_hot_labels, logits=preds)
     )
+
     acc, acc_op = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(preds, axis=-1), name='acc')
 
     if mode == tf.estimator.ModeKeys.EVAL:
@@ -115,12 +116,14 @@ def model_fn(features, labels, mode, params):
 
     tf.summary.scalar('accuracy', acc_op)
 
+    optimizer = tf.train.AdamOptimizer(params.learning_rate)
+
     global_step = tf.train.get_global_step()  # number of batches seen so far
     train_op = tf.contrib.layers.optimize_loss(
         loss=loss,
         global_step=global_step,
         learning_rate=params.learning_rate,
-        optimizer=tf.train.AdamOptimizer()
+        optimizer=optimizer
     )
 
     return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
