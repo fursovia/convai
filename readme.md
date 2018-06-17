@@ -29,5 +29,5 @@ Model mame: DSSMAgent
 ## Instruciton for install 
 1. install ParlAI
 2. clone this repository into ParlAI/projects/
-3. go to ParlAI/projects/loopai and run "python eval_hits.py"
-
+3. go to ParlAI/projects/loopai and run "python eval_hits.py" (we have only eval hits)
+4. on validation you should get ** score
