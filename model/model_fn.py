@@ -46,7 +46,8 @@ def build_model(is_training, sentences, params):
         personal_info = tf.reduce_mean(personal_info, axis=2)  # [None, 5, 300]
 
     with tf.name_scope("context_attention"):
-        context_output = attention(context, 50)
+        # context_output = attention(context, 50)
+        context_output = tf.reduce_mean(context, axis=1)
 
     with tf.name_scope("closest_fact"):
         dot_product = tf.matmul(tf.expand_dims(reply, 1), personal_info, transpose_b=True)  # [None, 5]
@@ -59,16 +60,16 @@ def build_model(is_training, sentences, params):
     concatenated = tf.concat([context_output, question, reply, closest_info, max_dot_product], axis=1)
 
     with tf.variable_scope('fc_0'):
-        dense0 = tf.layers.dense(concatenated, 1024, activation=tf.nn.elu)
+        dense0 = tf.layers.dense(concatenated, 512)
 
-    with tf.variable_scope('fc_1'):
-        dense1 = tf.layers.dense(dense0, 512, activation=tf.nn.elu)
-
-    with tf.variable_scope('fc_2'):
-        dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.elu)
+    # with tf.variable_scope('fc_1'):
+    #     dense1 = tf.layers.dense(dense0, 512, activation=tf.nn.elu)
+    #
+    # with tf.variable_scope('fc_2'):
+    #     dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.elu)
 
     with tf.variable_scope('fc_3'):
-        dense3 = tf.layers.dense(dense2, 2, activation=tf.nn.softmax)
+        dense3 = tf.layers.dense(dense0, 2, activation=tf.nn.softmax)
 
     return dense3
 
