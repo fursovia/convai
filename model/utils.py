@@ -144,8 +144,74 @@ def vectorize_text(text, word2idx, maxlen=20, truncating_type='post'):
     return pad_sequences([vec_seen], maxlen=maxlen, truncating=truncating_type)[0]
 
 
-def text2vec(text, word2idx, dict_from_parlai):
+def text2vec(dict_from_parlai, word2idx):
+    personal_info = []  # нужно иметь 5 фактов
+    dial = []
+    cands = dict_from_parlai['label_candidates']
+    splitted_text = dict_from_parlai['text'].split('\n')
+    true_ans = dict_from_parlai['eval_labels'][0]
+    for i, cand in enumerate(cands):
+        if cand == true_ans:
+            true_answer_id = i
 
+    cleaned_cands = []
+    for mes in cands:
+        cleaned_cands.append(clean(mes))
 
-    text = clean(text)
-    return vectorize_text(text, word2idx)
+    for mes in splitted_text:
+        mes = clean(mes)
+        if 'your persona:' in mes:
+            personal_info.append(clean(' '.join(mes.split(':')[1:])))
+        else:
+            dial.append(clean(mes))
+
+    dial_len = len(dial)
+
+    if dial_len == 1:
+        cont = ''
+        quest = dial[0]
+
+    if dial_len == 2:
+        cont = dial[0]
+        quest = dial[1]
+
+    if dial_len == 3:
+        cont = ' '.join(dial[0:2])
+        quest = dial[2]
+
+    if dial_len > 3:
+        cont = ' '.join(dial[dial_len-4:dial_len-1])  # контекст длины 3
+        quest = dial[dial_len-1]
+
+    info_5 = []
+    for i in range(5):
+        try:
+            info_5.append(personal_info[i])
+        except IndexError:
+            info_5.append('')
+
+    X = []
+    for cand in cleaned_cands:
+        X.append([cont, quest, cand, info_5])
+
+    context_vect = []
+    question_vect = []
+    reply_vect = []
+    info_vect = []
+    for i, dial in enumerate(X):
+        cont = vectorize_text(dial[0], word2idx, 60, 'pre')
+        ques = vectorize_text(dial[1], word2idx)
+        reply = vectorize_text(dial[2], word2idx)
+
+        context_vect.append(cont)
+        question_vect.append(ques)
+        reply_vect.append(reply)
+
+        info_ = dial[3]
+        for j in range(5):  # 5 фактов о каждом
+            vect_info = vectorize_text(info_[j], word2idx)
+            info_vect.append(vect_info)
+
+    data = np.hstack((context_vect, question_vect, reply_vect, np.array(info_vect).reshape(-1, 100)))
+
+    return data, true_answer_id
