@@ -95,7 +95,7 @@ class DSSMAgent(Agent):
         data_to_predict = np.array(data_to_predict, int).reshape(-1, 200)
 
         # подаем по 20 кандидатов и находим лучшие из них
-        test_input_fn = tf.estimator.inputs.numpy_input_fn(data_to_predict,
+        test_input_fn = self.estimator.inputs.numpy_input_fn(data_to_predict,
                                                            num_epochs=1,
                                                            batch_size=20,
                                                            shuffle=False)
