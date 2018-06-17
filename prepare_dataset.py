@@ -17,11 +17,21 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--features', default='N', help="Whether to do some feature engineering")
 parser.add_argument('--data_dir', default='data', help="Directory containing the dataset")
 parser.add_argument('--vocab_size', type=int, default=16000)
+parser.add_argument('--only_words', default='Y')
 
 
 if __name__ == '__main__':
 
     args = parser.parse_args()
+
+    if args.only_words == 'Y':
+        only_words = True
+        num_words = args.vocab_size
+        num_bigrams = 0
+    else:
+        only_words = False
+        num_words = int(args.vocab_size / 2)
+        num_bigrams = int(args.vocab_size / 2)
 
     train_raw_data_path1 = os.path.join(args.data_dir, 'initial/train_both_original.txt')
     valid_raw_data_path1 = os.path.join(args.data_dir, 'initial/valid_both_original.txt')
@@ -204,9 +214,6 @@ if __name__ == '__main__':
         print('Loading word2idx file from {}'.format(word2idx_path))
         word2idx = pickle.load(open(word2idx_path, 'rb'))
     else:
-        num_words = int(args.vocab_size / 2)
-        num_bigrams = int(args.vocab_size / 2)
-
         words = ' '.join(corpus).split()
         bigrams = ngrams(words, 2)
 
@@ -217,7 +224,10 @@ if __name__ == '__main__':
         print('Num of bigrams: {0}'.format(len(bi_counter.most_common())))
 
         uni2idx = {word[0]: i + 1 for i, word in enumerate(uni_counter.most_common(num_words))}
-        bi2idx = {word[0]: num_words + 1 + i for i, word in enumerate(bi_counter.most_common(num_bigrams))}
+        if not only_words:
+            bi2idx = {word[0]: num_words + 1 + i for i, word in enumerate(bi_counter.most_common(num_bigrams))}
+        else:
+            bi2idx = {}
 
         word2idx = {}
         word2idx.update(uni2idx)

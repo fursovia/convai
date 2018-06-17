@@ -4,7 +4,6 @@ import json
 import os
 import numpy as np
 import pickle
-import fasttext
 import tensorflow as tf
 import re
 from nltk.stem import SnowballStemmer
@@ -48,19 +47,28 @@ class Params():
         return self.__dict__
 
 
+def get_coefs(word, *arr):
+    return word, np.array(arr, dtype="float32")
+
+
 def get_embeddings(params):
-    word2idx_file = os.path.join(params.data_path, 'word2idx.pkl')
-    fasttext_file = os.path.join(params.data_path, 'fasttext.bin')
+    word2idx_file = os.path.join('data', 'word2idx.pkl')
+    fasttext_file = os.path.join('data', 'fasttext.vec')
 
     word2idx = pickle.load(open(word2idx_file, 'rb'))
-    model = fasttext.load_model(fasttext_file)
+    embeddings_index = dict(get_coefs(*o.strip().split()) for o in open(fasttext_file, encoding='utf-8'))
 
     embedding_matrix = np.zeros(((params.vocab_size + 1), params.embedding_size))
 
     for word, i in word2idx.items():
         if type(word) == tuple:
             word = ' '.join(word)
-        embedding_matrix[i] = model[word]
+
+        embedding_vector = embeddings_index.get(word)
+        if embedding_vector is not None:
+            embedding_matrix[i] = embedding_vector
+        else:
+            embedding_matrix[i] = np.random.uniform(-0.1, 0.1, params.embedding_size)
 
     return embedding_matrix
 
@@ -125,22 +133,25 @@ def clean(text, with_stopwords=True):
         return ' '.join(snowball_stemmer.stem(word) for word in text.split() if word not in stop_words)
 
 
-def vectorize_text(text, word2idx, maxlen=20, truncating_type='post'):
+def vectorize_text(text, word2idx, maxlen=20, truncating_type='post', only_words=True):
     vec_seen = []
 
     words_ = text.split()
-    bi_ = ngrams(words_, 2)
 
     for word in words_:
         try:
             vec_seen.append(word2idx[word])
         except:
             continue
-    for bi in bi_:
-        try:
-            vec_seen.append(word2idx[bi])
-        except:
-            continue
+
+    if not only_words:
+        bi_ = ngrams(words_, 2)
+        for bi in bi_:
+            try:
+                vec_seen.append(word2idx[bi])
+            except:
+                continue
+
     return pad_sequences([vec_seen], maxlen=maxlen, truncating=truncating_type)[0]
 
 
