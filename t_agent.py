@@ -80,13 +80,21 @@ class DSSMAgent(Agent):
 
         return estimator
 
-    def predict(self, some_dict):
+    def predict(self, some_dicts):
         word2idx = pickle.load(open(os.path.join(self.opt['data_dir'], 'word2idx.pkl'), 'rb'))
 
-        test_data, true_id, true_ans, raw_dial, cands = text2vec(some_dict, word2idx)
+        data_to_predict = []
+        candidates = []
+
+        for dict_ in some_dicts:
+            test_data, true_id, true_ans, raw_dial, cands = text2vec(dict_, word2idx)
+            data_to_predict.append(test_data)
+            candidates.append(cands)
+
+        data_to_predict = np.array(data_to_predict, int).reshape(-1, 200)
 
         # подаем по 20 кандидатов и находим лучшие из них
-        test_input_fn = tf.estimator.inputs.numpy_input_fn(test_data,
+        test_input_fn = tf.estimator.inputs.numpy_input_fn(data_to_predict,
                                                            num_epochs=1,
                                                            batch_size=20,
                                                            shuffle=False)
@@ -94,11 +102,15 @@ class DSSMAgent(Agent):
         test_predictions = self.estimator.predict(test_input_fn,
                                                   predict_keys=['y_prob'],
                                                   yield_single_examples=False)
-        for batch in test_predictions:
-            sorted_elements = np.argsort(batch['y_prob'])[::-1]
-            cands = np.array(cands, object)
+        output = []
 
-        return cands[sorted_elements]
+        for i, batch in enumerate(test_predictions):
+            sorted_elements = np.argsort(batch['y_prob'])[::-1]
+            cands = np.array(candidates[i], object)
+            ppp = cands[sorted_elements]
+            output.append(ppp)
+
+        return output
 
 
     def batchify(self, obs):
@@ -139,9 +151,10 @@ class DSSMAgent(Agent):
         batchsize = len(observations)
         batch_reply = [{'id': self.id} for _ in range(batchsize)]
 
+        predictions = self.predict(observations)
+
         for i in range(len(batch_reply)):
-            # print(ob)
-            batch_reply[i]['text_candidates'] = list(self.predict(observations[i]))
+            batch_reply[i]['text_candidates'] = predictions[i]
             batch_reply[i]['text'] = batch_reply[i]['text_candidates'][0]
 
         return batch_reply # [{'text': 'bedroom', 'id': 'RNN'}, ...]
