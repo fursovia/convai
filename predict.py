@@ -7,6 +7,7 @@ from model.utils import Params
 from model.model_fn import model_fn
 import pickle
 import numpy as np
+from model.utils import text2vec
 
 
 parser = argparse.ArgumentParser()
@@ -14,6 +15,8 @@ parser.add_argument('--model_dir', default='experiments',
                     help="Experiment directory containing params.json")
 parser.add_argument('--data_dir', default='data',
                     help="Directory containing the dataset")
+
+some_dict = {}
 
 if __name__ == '__main__':
     tf.reset_default_graph()
@@ -32,14 +35,14 @@ if __name__ == '__main__':
                                     save_summary_steps=params.save_summary_steps)
     estimator = tf.estimator.Estimator(model_fn, params=params, config=config)
 
-    # TODO: здесь прикрутить функцию, которая будет из сырого текста делать подходящий формат
-    test_data = pickle.load(open(os.path.join(args.data_dir, 'test/X.pkl'), 'rb'))  # already stacked (C, Q, R, I)
-    # raw_test_data = pickle.load(open(os.path.join(args.data_dir, 'test/R_raw.pkl'), 'rb'))  # raw replies
+    word2idx = pickle.load(open(os.path.join(args.data_dir, 'word2idx.pkl'), 'rb'))
 
-    # подаем по 10 кандидатов и находим лучшие из них
+    test_data, true_id, true_ans = text2vec(some_dict, word2idx)
+
+    # подаем по 20 кандидатов и находим лучшие из них
     test_input_fn = tf.estimator.inputs.numpy_input_fn(test_data,
                                                        num_epochs=1,
-                                                       batch_size=10,
+                                                       batch_size=20,
                                                        shuffle=False)
 
     test_predictions = estimator.predict(test_input_fn,

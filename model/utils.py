@@ -214,4 +214,4 @@ def text2vec(dict_from_parlai, word2idx):
 
     data = np.hstack((context_vect, question_vect, reply_vect, np.array(info_vect).reshape(-1, 100)))
 
-    return data, true_answer_id
+    return data, true_answer_id, cands[true_answer_id]
