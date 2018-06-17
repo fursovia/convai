@@ -42,7 +42,7 @@ def build_model(is_training, sentences, params):
             embedding_matrix = tf.get_variable("embedding_matrix", shape=[(params.vocab_size + 1), params.embedding_size],
                                                initializer=weights_initializer,
                                                trainable=True,
-                                               dtype=tf.float32)
+                                               dtype=tf.float64)
 
             context = tf.nn.embedding_lookup(embedding_matrix, context)
             question = tf.nn.embedding_lookup(embedding_matrix, question)
