@@ -130,7 +130,7 @@ class DSSMAgent(Agent):
             cands = np.array(candidates[i], object)
             ppp = cands[sorted_elements]
             output.append(ppp)
-            del test_predictions[:leng]
+            test_predictions = test_predictions[leng:]
 
         return output
 
