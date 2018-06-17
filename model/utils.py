@@ -47,8 +47,9 @@ class Params():
         return self.__dict__
 
 
-def get_coefs(word, *arr):
-    return word, np.array(arr, dtype="float32")
+def get_coefs(arr):
+    word, arr = arr[:-300], arr[-300:]
+    return ' '.join(word), np.array(arr, dtype="float32")
 
 
 def get_embeddings(params):
@@ -56,7 +57,7 @@ def get_embeddings(params):
     fasttext_file = os.path.join(params.data_path, 'fasttext.vec')
 
     word2idx = pickle.load(open(word2idx_file, 'rb'))
-    embeddings_index = dict(get_coefs(*o.strip().split()) for o in open(fasttext_file, encoding='utf-8'))
+    embeddings_index = dict(get_coefs(o.strip().split()) for o in open(fasttext_file, encoding='utf-8'))
 
     embedding_matrix = np.zeros(((params.vocab_size + 1), params.embedding_size))
 
