@@ -39,7 +39,7 @@ def build_model(is_training, sentences, params):
         question = tf.nn.embedding_lookup(embedding_matrix, question)
         reply = tf.nn.embedding_lookup(embedding_matrix, reply)
         personal_info = tf.nn.embedding_lookup(embedding_matrix, personal_info)
-        personal_info = tf.reshape(personal_info, [-1, 5, 40, params.embedding_size])
+        personal_info = tf.reshape(personal_info, [-1, 5, 20, params.embedding_size])
 
         question = tf.reduce_mean(question, axis=1)  # [None, 300]
         reply = tf.reduce_mean(reply, axis=1)  # [None, 300]
