@@ -49,7 +49,7 @@ class Params():
 
 def get_coefs(arr):
     word, arr = arr[:-300], arr[-300:]
-    return ' '.join(word), np.array(arr, dtype="float32")
+    return ' '.join(word), np.array(arr, dtype=np.float64)
 
 
 def get_embeddings(params):
