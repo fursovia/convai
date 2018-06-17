@@ -1,9 +1,7 @@
 """data iterator"""
 
-import pickle
 import tensorflow as tf
 import os
-import numpy as np
 from model.utils import decode
 
 
