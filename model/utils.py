@@ -147,6 +147,7 @@ def vectorize_text(text, word2idx, maxlen=20, truncating_type='post'):
 def text2vec(dict_from_parlai, word2idx):
     personal_info = []  # нужно иметь 5 фактов
     dial = []
+    raw_dial = []
     cands = dict_from_parlai['label_candidates']
     splitted_text = dict_from_parlai['text'].split('\n')
     true_ans = dict_from_parlai['eval_labels'][0]
@@ -164,6 +165,7 @@ def text2vec(dict_from_parlai, word2idx):
             personal_info.append(clean(' '.join(mes.split(':')[1:])))
         else:
             dial.append(clean(mes))
+            raw_dial.append(mes)
 
     dial_len = len(dial)
 
@@ -214,4 +216,4 @@ def text2vec(dict_from_parlai, word2idx):
 
     data = np.hstack((context_vect, question_vect, reply_vect, np.array(info_vect).reshape(-1, 100)))
 
-    return data, true_answer_id, cands[true_answer_id]
+    return data, true_answer_id, cands[true_answer_id], raw_dial, cands

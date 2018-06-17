@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
     word2idx = pickle.load(open(os.path.join(args.data_dir, 'word2idx.pkl'), 'rb'))
 
-    test_data, true_id, true_ans = text2vec(some_dict, word2idx)
+    test_data, true_id, true_ans, raw_dial, cands = text2vec(some_dict, word2idx)
 
     # подаем по 20 кандидатов и находим лучшие из них
     test_input_fn = tf.estimator.inputs.numpy_input_fn(test_data,
@@ -75,4 +75,9 @@ if __name__ == '__main__':
         sorted_elements = np.argsort(batch['y_prob'])[::-1]
         print('Most likely answer id = {}'.format(best_id))
         print('Sorted elements: {}'.format(sorted_elements))
+        print('Dialog: ')
+        for mes in raw_dial:
+            print(mes)
+        print('True answer: {}'.format(true_ans))
+        print('Predicted answer: {}'.format(cands[best_id]))
         # print('Best raw reply: {}'.format(raw_test_data[best_id]))
