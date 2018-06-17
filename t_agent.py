@@ -6,7 +6,7 @@ from model.model_fn import model_fn
 import pickle
 import numpy as np
 import copy
-
+from model.utils import text2vec
 from parlai.core.agents import Agent
 from parlai.core.dict import DictionaryAgent
 from tensorflow.python.client import device_lib
@@ -16,6 +16,7 @@ class DSSMAgent(Agent):
     @staticmethod
     def add_cmdline_args(argparser):
         DictionaryAgent.add_cmdline_args(argparser)
+
         agent = argparser.add_argument_group('DSSM Arguments')
         agent.add_argument('--model_dir', default='experiments',
                     help="Experiment directory containing params.json")
@@ -24,23 +25,11 @@ class DSSMAgent(Agent):
 
     def __init__(self, opt):
         super().__init__(opt)
-        # don't enter this loop for shared instantiations
-
-
         self.id = 'DSSM'
-#             self.dict = DictionaryAgent(opt)
         self.observation = {}
-
-#             self.path = opt.get('model_file', None)
-
-#         if opt.get('model_dir') and os.path.isdir(opt['model_dir']):
-#             print('Loading existing model parameters from ' + opt['model_dir'])
-#             self.estimator = self.create_model()
-#         else:
-#             self.estimator = None
-
         self.episode_done = True
-
+        self.estimator = self.create_model()
+        self.opt = opt
 
     def txt2vec(self, txt):
         return np.array(self.dict.txt2vec(txt)).astype(np.int32)
@@ -50,18 +39,14 @@ class DSSMAgent(Agent):
 
     def observe(self, observation):
         observation = copy.deepcopy(observation)
-        # At this moment `self.episode_done` is the previous example
+
         if not self.episode_done:
-            # If the previous example is not the end of the episode,
-            # we need to recall the `text` mentioned in the previous example.
-            # At this moment `self.observation` is the previous example.
             prev_dialogue = self.observation['text']
-            # Add the previous and current `text` and update current `text`
             observation['text'] = prev_dialogue + '\n' + observation['text']
-        # Overwrite with current example
+
         self.observation = observation
-        # The last example of an episode is provided as `{'episode_done': True}`
         self.episode_done = observation['episode_done']
+
         return observation
 
     def create_model(self):
@@ -70,48 +55,39 @@ class DSSMAgent(Agent):
         tf.logging.set_verbosity(tf.logging.INFO)
 
         # ПОДГРУЖАЕМ ПАРАМЕТРЫ
-        json_path = os.path.join(agent.model_dir, 'params.json')
+        json_path = os.path.join(self.opt['model_dir'], 'params.json')
         assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
         self.params = Params(json_path)
 
         # ОПРЕДЕЛЯЕМ МОДЕЛЬ
         tf.logging.info("Creating the model...")
         config = tf.estimator.RunConfig(tf_random_seed=230,
-                                        model_dir=agent.model_dir,
-                                        save_summary_steps=params.save_summary_steps)
+                                        model_dir=self.opt['model_dir'])
+
         estimator = tf.estimator.Estimator(model_fn, params=self.params, config=config)
 
         return estimator
 
-    def predict(self, test_data):
-#         test_data = pickle.load(open(os.path.join(args.data_dir, 'test/X.pkl'), 'rb'))  # already stacked (C, Q, R, I)
-        # raw_test_data = pickle.load(open(os.path.join(args.data_dir, 'test/R_raw.pkl'), 'rb'))  # raw replies
+    def predict(self, some_dict):
+        word2idx = pickle.load(open(os.path.join(self.opt['data_dir'], 'word2idx.pkl'), 'rb'))
 
-        # подаем по 10 кандидатов и находим лучшие из них
+        test_data, true_id, true_ans, raw_dial, cands = text2vec(some_dict, word2idx)
+
+        # подаем по 20 кандидатов и находим лучшие из них
         test_input_fn = tf.estimator.inputs.numpy_input_fn(test_data,
                                                            num_epochs=1,
-                                                           batch_size=10,
+                                                           batch_size=20,
                                                            shuffle=False)
 
         test_predictions = self.estimator.predict(test_input_fn,
-                                         predict_keys=['y_prob'],
-                                         yield_single_examples=False)
+                                                  predict_keys=['y_prob'],
+                                                  yield_single_examples=False)
 
-        for i, batch in enumerate(test_predictions):
-            best_id = 10 * i + np.argmax(batch['y_prob'])
-            sorted_elements = np.argsort(batch['y_prob'], axis=1)
-            print('Most likely answer id = {}'.format(best_id))
-            print('Sorted elements: {}'.format(sorted_elements))
+        sorted_elements = np.argsort(test_predictions['y_prob'])[::-1]
+        cands = np.array(cands, object)
 
-        pred = sorted_elements
+        return cands[sorted_elements]
 
-            # print('Best raw reply: {}'.format(raw_test_data[best_id]))
-#         idx = self.sess.run(self.idx, feed_dict={self.xs: xs, self.drop: False})
-#         preds = [self.vec2txt([i]) for i in idx]
-#         if random.random() < 0.1:
-#             print('prediction:', preds[0])
-
-        return preds
 
     def batchify(self, obs):
         """Convert batch observations `text` and `label` to rank 2 tensor `xs` and `ys`
