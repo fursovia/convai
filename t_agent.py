@@ -94,9 +94,9 @@ class DSSMAgent(Agent):
         test_predictions = self.estimator.predict(test_input_fn,
                                                   predict_keys=['y_prob'],
                                                   yield_single_examples=False)
-
-        sorted_elements = np.argsort(test_predictions['y_prob'])[::-1]
-        cands = np.array(cands, object)
+        for i, batch in test_predictions:
+            sorted_elements = np.argsort(batch['y_prob'])[::-1]
+            cands = np.array(cands, object)
 
         return cands[sorted_elements]
 
