@@ -7,51 +7,16 @@ import numpy as np
 from tqdm import tqdm
 from collections import Counter
 from nltk import ngrams
-from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
-import re
-from nltk.stem import SnowballStemmer
-from nltk.corpus import stopwords
 from model.utils import convert_to_records
+from model.utils import clean
+from model.utils import vectorize_text
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--features', default='N', help="Whether to do some feature engineering")
 parser.add_argument('--data_dir', default='data', help="Directory containing the dataset")
 parser.add_argument('--vocab_size', type=int, default=16000)
-
-snowball_stemmer = SnowballStemmer("english")
-stop_words = stopwords.words("english")
-
-
-def clean(text, with_stopwords=True):
-    text = text.strip().lower()
-    text = re.sub('[^\w\s]', ' ', text)
-    text = re.sub('^\d+\s|\s\d+\s|\s\d+$', " <num> ", text)
-    if with_stopwords:
-        return ' '.join(snowball_stemmer.stem(word) for word in text.split())
-    else:
-        return ' '.join(snowball_stemmer.stem(word) for word in text.split() if word not in stop_words)
-
-
-def vectorize_text(text, word2idx, maxlen=20, truncating_type='post'):
-    vec_seen = []
-
-    words_ = text.split()
-    bi_ = ngrams(words_, 2)
-
-    for word in words_:
-        try:
-            vec_seen.append(word2idx[word])
-        except:
-            continue
-    for bi in bi_:
-        try:
-            vec_seen.append(word2idx[bi])
-        except:
-            continue
-
-    return pad_sequences([vec_seen], maxlen=maxlen, truncating=truncating_type)[0]
 
 
 if __name__ == '__main__':
