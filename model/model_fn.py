@@ -19,18 +19,28 @@ def build_model(is_training, sentences, params):
     Returns:
         output: (tf.Tensor) output of the model
     """
-    context = sentences[:, :60]
-    question = sentences[:, 60:80]
-    reply = sentences[:, 80:100]
-    personal_info = sentences[:, 100:200]
+    context = sentences['cont']
+    question = sentences['quest']
+    reply = sentences['resp']
+    personal_info = sentences['facts']
+    # personal_info = tf.reshape(personal_info, [-1, 5, 140])
 
-    if is_training:
-        if params.pretrained:
-            weights_initializer = get_embeddings(params)
-        else:
-            weights_initializer = tf.truncated_normal_initializer(stddev=0.001)
-    else:
-        weights_initializer = None  # don't spend time on embeddings initialization
+    cont_u = context[:, :20]
+    quest_u = context[:, :20]
+    resp_u = context[:, :20]
+    facts_u = context[:, :20]
+
+    cont_b = context[:, 20:40]
+    quest_b = context[:, 20:40]
+    resp_b = context[:, 20:40]
+    facts_b = context[:, 20:40]
+
+    cont_c = context[:, 40:140]
+    quest_c = context[:, 40:140]
+    resp_c = context[:, 40:140]
+    facts_c = context[:, 40:140]
+
+    weights_initializer = tf.truncated_normal_initializer(stddev=0.001)
 
     if params.architecture == 1:
         def gru_encoder(X):
@@ -39,22 +49,41 @@ def build_model(is_training, sentences, params):
                                                      dtype=tf.float32)
             return words_final_state
 
-        with tf.name_scope("embedding"):
-            embedding_matrix = tf.get_variable("embedding_matrix", shape=[(params.vocab_size + 1), params.embedding_size],
-                                               initializer=weights_initializer,
-                                               trainable=True,
-                                               dtype=tf.float64)
+        with tf.name_scope("embedding_words"):
+            embedding_matrix_u = tf.get_variable("embedding_matrix_u",
+                                                 shape=[(params.uni_size + 1), params.embedding_size],
+                                                 initializer=weights_initializer,
+                                                 trainable=True,
+                                                 dtype=tf.float64)
 
-            context = tf.nn.embedding_lookup(embedding_matrix, context)
-            question = tf.nn.embedding_lookup(embedding_matrix, question)
-            reply = tf.nn.embedding_lookup(embedding_matrix, reply)
-            personal_info = tf.nn.embedding_lookup(embedding_matrix, personal_info)
+            cont_u = tf.nn.embedding_lookup(embedding_matrix_u, cont_u)
+            quest_u = tf.nn.embedding_lookup(embedding_matrix_u, quest_u)
+            resp_u = tf.nn.embedding_lookup(embedding_matrix_u, resp_u)
+            facts_u = tf.nn.embedding_lookup(embedding_matrix_u, facts_u)
 
-            info1 = tf.reshape(personal_info[:,:20], [-1, 20, params.embedding_size])
-            info2 = tf.reshape(personal_info[:,20:40], [-1, 20, params.embedding_size])
-            info3 = tf.reshape(personal_info[:,40:60], [-1, 20, params.embedding_size])
-            info4 = tf.reshape(personal_info[:,60:80], [-1, 20, params.embedding_size])
-            info5 = tf.reshape(personal_info[:,80:100], [-1, 20, params.embedding_size])
+        with tf.name_scope("embedding_bigrams"):
+            embedding_matrix_b = tf.get_variable("embedding_matrix_b",
+                                                 shape=[(params.bi_size + 1), params.embedding_size],
+                                                 initializer=weights_initializer,
+                                                 trainable=True,
+                                                 dtype=tf.float64)
+
+            cont_b = tf.nn.embedding_lookup(embedding_matrix_b, cont_b)
+            quest_b = tf.nn.embedding_lookup(embedding_matrix_b, quest_b)
+            resp_b = tf.nn.embedding_lookup(embedding_matrix_b, resp_b)
+            facts_b = tf.nn.embedding_lookup(embedding_matrix_b, facts_b)
+
+        with tf.name_scope("embedding_chars"):
+            embedding_matrix_c = tf.get_variable("embedding_matrix_c",
+                                                 shape=[(params.char_size + 1), params.embedding_size],
+                                                 initializer=weights_initializer,
+                                                 trainable=True,
+                                                 dtype=tf.float64)
+
+            cont_c = tf.nn.embedding_lookup(embedding_matrix_c, cont_c)
+            quest_c = tf.nn.embedding_lookup(embedding_matrix_c, quest_c)
+            resp_c = tf.nn.embedding_lookup(embedding_matrix_c, resp_c)
+            facts_c = tf.nn.embedding_lookup(embedding_matrix_c, facts_c)
 
         with tf.variable_scope("GRU_encoder"):
             reply_gru = gru_encoder(reply)

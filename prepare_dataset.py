@@ -7,31 +7,24 @@ import numpy as np
 from tqdm import tqdm
 from collections import Counter
 from nltk import ngrams
-from sklearn.model_selection import train_test_split
-from model.utils import convert_to_records
 from model.utils import clean
-from model.utils import vectorize_text
+import pandas as pd
+from multiprocessing import Pool
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--features', default='N', help="Whether to do some feature engineering")
 parser.add_argument('--data_dir', default='data', help="Directory containing the dataset")
-parser.add_argument('--vocab_size', type=int, default=16000)
-parser.add_argument('--only_words', default='Y')
+parser.add_argument('--num_uni', type=int, default=15000)
+parser.add_argument('--num_chars', type=int, default=10000)
+parser.add_argument('--num_bi', type=int, default=20000)
+parser.add_argument('--min_freq', type=int, default=5)
+parser.add_argument('--neg_to_pos', type=int, default=5,
+                    help='How many negative examples to one positive. NO MORE THAN 20')
 
 
 if __name__ == '__main__':
 
     args = parser.parse_args()
-
-    if args.only_words == 'Y':
-        only_words = True
-        num_words = args.vocab_size
-        num_bigrams = 0
-    else:
-        only_words = False
-        num_words = int(args.vocab_size / 2)
-        num_bigrams = int(args.vocab_size / 2)
 
     train_raw_data_path1 = os.path.join(args.data_dir, 'initial/train_both_original.txt')
     valid_raw_data_path1 = os.path.join(args.data_dir, 'initial/valid_both_original.txt')
@@ -56,6 +49,7 @@ if __name__ == '__main__':
 
     raw_data = train_raw_data + valid_raw_data
 
+    print('preparing data for further handling...')
     # находим все диалоги
     dialogs = []
     personal_infos = []
@@ -94,64 +88,24 @@ if __name__ == '__main__':
     print('num of personal infos = {}'.format(len(personal_infos)))
     print('num of candidates = {}'.format(len(candidates)))
 
-    print('cleaning utterances...')
-    all_utterances_cleaned = []
-    for utt in tqdm(all_utterances):
-        all_utterances_cleaned.append(clean(utt))
-
-    # чистим диалоги и персональную инфу
-    cleaned_dials = []
-    cleaned_infos = []
-    cleaned_cands = []
-
-    for i, dialog in enumerate(tqdm(dialogs)):
-        cleaned_dial = []
-        first_cleaned = []
-        second_cleaned = []
-        first_info, second_info = personal_infos[i]
-
-        for info in first_info:
-            cleaned_info = clean(info)
-            first_cleaned.append(cleaned_info)
-
-        for info in second_info:
-            cleaned_info = clean(info)
-            second_cleaned.append(cleaned_info)
-
-        cleaned_infos.append([first_cleaned, second_cleaned])
-
-        for idx, mes in enumerate(dialog):
-            cleaned_mes = clean(mes)
-            cleaned_dial.append(cleaned_mes)
-        cleaned_dials.append(cleaned_dial)
-
-        curr_cands = candidates[i]
-        cleaned_cands_ = []
-        for cand in curr_cands:
-            cleaned_mes = []
-            for mes in cand:
-                cleaned_mes.append(clean(mes))
-            cleaned_cands_.append(cleaned_mes)
-        cleaned_cands.append(cleaned_cands_)
-
-    print('num of dialogs = {}'.format(len(cleaned_dials)))
-    print('num of personal infos = {}'.format(len(cleaned_infos)))
-    print('num of candidates = {}'.format(len(cleaned_cands)))
-
-    pickle.dump(cleaned_dials, open(os.path.join(args.data_dir, 'dials.pkl'), 'wb'))
-    pickle.dump(cleaned_infos, open(os.path.join(args.data_dir, 'infos.pkl'), 'wb'))
-    pickle.dump(cleaned_cands, open(os.path.join(args.data_dir, 'cands.pkl'), 'wb'))
-
+    print('getting X and Y...')
     # диалог начинает другой человек, а мы отвечаем
     X = []
     Y = []
 
-    for i, dialog in enumerate(tqdm(cleaned_dials)):
+    for i, dialog in enumerate(tqdm(dialogs)):
         for idx, mes in enumerate(dialog):
             if idx % 2 == 0:
-                personal_info = cleaned_infos[i][1]
+                personal_info = personal_infos[i][1]
             else:
-                personal_info = cleaned_infos[i][0]
+                personal_info = personal_infos[i][0]
+
+            personal_info_ = []
+            for inf_id in range(5):
+                try:
+                    personal_info_.append(personal_info[inf_id])
+                except IndexError:
+                    personal_info_.append('')
 
             if idx == 1:
                 context = ''
@@ -168,118 +122,144 @@ if __name__ == '__main__':
             if idx >= 1:
                 question = dialog[idx - 1]
                 reply = dialog[idx]
-                x_small = [context, question, reply, personal_info]
+                x_small = [context, question, reply]
+                x_small.extend(personal_info_)
                 X.append(x_small)
                 Y.append(1)
 
                 if idx % 2 == 1:
-                    idxx = int(idx/2)
-                    neg_cands = cleaned_cands[i]
+                    idxx = int(idx / 2)
+                    neg_cands = candidates[i]
                     curr_negs = neg_cands[idxx]  # 20 кандидатов
-                    for cand in curr_negs:
-                        x_small = [context, question, cand, personal_info]
+                    for neg_i in range(args.neg_to_pos):
+                        cand = curr_negs[neg_i]
+                        x_small = [context, question, cand]
+                        x_small.extend(personal_info_)
                         X.append(x_small)
                         Y.append(0)
-                # VERY SLOW and no need for this since we already have unbalanced classes
-                # else:
-                #     curr_negs = np.random.choice(all_utterances_cleaned, 20, replace=False)
-                #     for cand in curr_negs:
-                #         x_small = [context, question, cand, personal_info]
-                #         X.append(x_small)
-                #         Y.append(0)
 
-    # TODO: придумать фичи
-    if args.features == 'Y':
-        pass
+    columns = ['context', 'question', 'reply', 'fact1', 'fact2', 'fact3', 'fact4', 'fact5', 'labels']
+    XY = np.hstack((np.array(X, object), np.array(Y, int).reshape(-1, 1)))
+    df = pd.DataFrame(XY, columns=columns)
+    df.to_csv(os.path.join(args.data_dir, 'raw_df.csv'), index=False)
 
+    print('cleaning...')
+    with Pool(50) as p:
+        print('1')
+        context_cleaned = p.map(clean, df['context'])
+        print('2')
+        questions_cleaned = p.map(clean, df['question'])
+        print('3')
+        replies_cleaned = p.map(clean, df['reply'])
+        print('4')
+        fact1_cleaned = p.map(clean, df['fact1'])
+        print('5')
+        fact2_cleaned = p.map(clean, df['fact2'])
+        print('6')
+        fact3_cleaned = p.map(clean, df['fact3'])
+        print('7')
+        fact4_cleaned = p.map(clean, df['fact4'])
+        print('8')
+        fact5_cleaned = p.map(clean, df['fact5'])
+
+    df_cleaned = pd.DataFrame({
+        'context': context_cleaned,
+        'question': questions_cleaned,
+        'reply': replies_cleaned,
+        'fact1': fact1_cleaned,
+        'fact2': fact2_cleaned,
+        'fact3': fact3_cleaned,
+        'fact4': fact4_cleaned,
+        'fact5': fact5_cleaned,
+        'labels': df['labels'].values
+    })
+
+    df_cleaned.to_csv(os.path.join(args.data_dir, 'cleaned_df.csv'), index=False)
+
+    def clean2(text):
+        return clean(text, stem=False)
+
+    print('cleaning for the second time (for chars)...')
+    with Pool(50) as p:
+        print('1')
+        context_cleaned = p.map(clean2, df['context'])
+        print('2')
+        questions_cleaned = p.map(clean2, df['question'])
+        print('3')
+        replies_cleaned = p.map(clean2, df['reply'])
+        print('4')
+        fact1_cleaned = p.map(clean2, df['fact1'])
+        print('5')
+        fact2_cleaned = p.map(clean2, df['fact2'])
+        print('6')
+        fact3_cleaned = p.map(clean2, df['fact3'])
+        print('7')
+        fact4_cleaned = p.map(clean2, df['fact4'])
+        print('8')
+        fact5_cleaned = p.map(clean2, df['fact5'])
+
+    df_cleaned_char = pd.DataFrame({
+        'context': context_cleaned,
+        'question': questions_cleaned,
+        'reply': replies_cleaned,
+        'fact1': fact1_cleaned,
+        'fact2': fact2_cleaned,
+        'fact3': fact3_cleaned,
+        'fact4': fact4_cleaned,
+        'fact5': fact5_cleaned,
+        'labels': df['labels'].values
+    })
+
+    df_cleaned_char.to_csv(os.path.join(args.data_dir, 'cleaned_char_df.csv'), index=False)
+
+    # получаем словарь
+    vocabs_path = os.path.join(args.data_dir, 'vocabs')
+    uni2idx_path = os.path.join(vocabs_path, 'uni2idx.pkl')
+    bi2idx_path = os.path.join(vocabs_path, 'bi2idx.pkl')
+    char2idx_path = os.path.join(vocabs_path, 'char2idx.pkl')
+
+    if not os.path.exists(vocabs_path):
+        os.makedirs(vocabs_path)
+
+    # КОРПУС
     corpus = []
-    for i in range(len(cleaned_dials)):
-        dial = cleaned_dials[i]
-        infos = cleaned_infos[i]
-        cands_ = cleaned_cands[i]
-        for mes in dial:
-            corpus.append(mes)
-        for inf_ in infos:
-            for mes in inf_:
-                corpus.append(mes)
-        for c in cands_:
-            for mes in c:
-                corpus.append(mes)
+    for col in columns[:-1]:
+        corpus.extend(df_cleaned[col].tolist())
 
     corpus = list(set(corpus))
 
-    # получаем словарь
-    word2idx_path = os.path.join(args.data_dir, 'word2idx.pkl')
-    if os.path.isfile(word2idx_path):
-        print('Loading word2idx file from {}'.format(word2idx_path))
-        word2idx = pickle.load(open(word2idx_path, 'rb'))
-    else:
-        words = ' '.join(corpus).split()
-        bigrams = ngrams(words, 2)
+    corpus_char = []
+    for col in columns[:-1]:
+        corpus_char.extend(df_cleaned_char[col].tolist())
 
-        uni_counter = Counter(words)
-        bi_counter = Counter(bigrams)
+    corpus_char = list(set(corpus_char))
 
-        print('Num of unigrams: {0}'.format(len(uni_counter.most_common())))
-        print('Num of bigrams: {0}'.format(len(bi_counter.most_common())))
+    print('getting vocabs...')
+    words = ' '.join(corpus).split()
+    unigrams_counter = Counter(words)
 
-        uni2idx = {word[0]: i + 1 for i, word in enumerate(uni_counter.most_common(num_words))}
-        if not only_words:
-            bi2idx = {word[0]: num_words + 1 + i for i, word in enumerate(bi_counter.most_common(num_bigrams))}
-        else:
-            bi2idx = {}
+    bigrams = ngrams(words, 2)
+    bigrams_counter = Counter(bigrams)
 
-        word2idx = {}
-        word2idx.update(uni2idx)
-        word2idx.update(bi2idx)
+    char3grams = ngrams(' '.join(corpus_char), 3)
+    char_counter = Counter(char3grams)
 
-        pickle.dump(word2idx, open(word2idx_path, 'wb'))
-        pickle.dump(corpus, open(os.path.join(args.data_dir, 'corpus.pkl'), 'wb'))
-        print('word2idx file saved at {}'.format(word2idx_path))
-        print('corpus file saved at {}'.format(args.data_dir))
+    uni2tok = [o for o, c in unigrams_counter.most_common(args.num_uni) if c > args.min_freq]
+    uni2tok.insert(0, 'u_k')
+    uni2idx = {tok: i + 1 for i, tok in enumerate(uni2tok)}
 
-    print('Vectorizing...')
-    # векторизуем текст
-    context_vect = []
-    question_vect = []
-    reply_vect = []
-    info_vect = []
+    bi2tok = [o for o, c in bigrams_counter.most_common(args.num_bi) if c > args.min_freq]
+    bi2tok.insert(0, 'u_k')
+    bi2idx = {tok: i + 1 for i, tok in enumerate(bi2tok)}
 
-    for i, dial in enumerate(tqdm(X)):
-        cont = vectorize_text(dial[0], word2idx, 60, 'pre')
-        ques = vectorize_text(dial[1], word2idx)
-        reply = vectorize_text(dial[2], word2idx)
+    char2tok = [o for o, c in char_counter.most_common(args.num_chars) if c > args.min_freq]
+    char2tok.insert(0, 'u_k')
+    char2idx = {tok: i + 1 for i, tok in enumerate(char2tok)}
 
-        context_vect.append(cont)
-        question_vect.append(ques)
-        reply_vect.append(reply)
+    print('uni vocab len = {}'.format(len(uni2idx)))
+    print('bi vocab len = {}'.format(len(bi2idx)))
+    print('char vocab len = {}'.format(len(char2idx)))
 
-        info_ = dial[3]
-        for j in range(5):  # 5 фактов о каждом
-            try:
-                vect_info = vectorize_text(info_[j], word2idx)
-                info_vect.append(vect_info)
-            except IndexError:
-                info_vect.append(np.zeros_like(ques))  # длина вопроса равна длине факта
-
-    data = np.hstack((context_vect, question_vect, reply_vect, np.array(info_vect).reshape(-1, 100)))
-    Y = np.array(Y, int)
-
-    Ytr, Yev, Xtr, Xev = train_test_split(Y,
-                                          data,
-                                          test_size=0.1,
-                                          random_state=24)
-
-    sample_path = os.path.join(args.data_dir, 'sample')
-
-    if not os.path.exists(sample_path):
-        os.makedirs(sample_path)
-
-    print('Converting to TFRecords...')
-    convert_to_records([data, Y], 'full', args.data_dir)
-    convert_to_records([Xtr, Ytr], 'train', args.data_dir)
-    convert_to_records([Xev, Yev], 'eval', args.data_dir)
-
-    convert_to_records([data[:1000], Y[:1000]], 'full', sample_path)
-    convert_to_records([Xtr[:1000], Ytr[:1000]], 'train', sample_path)
-    convert_to_records([Xev[:1000], Yev[:1000]], 'eval', sample_path)
+    pickle.dump(uni2idx, open(uni2idx_path, 'wb'))
+    pickle.dump(bi2idx, open(bi2idx_path, 'wb'))
+    pickle.dump(char2idx, open(char2idx_path, 'wb'))

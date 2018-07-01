@@ -1,9 +1,10 @@
 {
     "learning_rate": 0.001,
-    "batch_size": 1024,
+    "batch_size": 512,
     "num_epochs": 10,
-    "vocab_size": 10000,
+    "uni_size": 10299,
+    "bi_size": 20001,
+    "char_size": 7046,
     "embedding_size": 300,
-    "save_summary_steps": 10,
-    "pretrained": true
+    "save_summary_steps": 10
 }
