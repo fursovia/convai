@@ -2,7 +2,7 @@
     "learning_rate": 0.001,
     "batch_size": 512,
     "train_size": 1900000,
-    "architecture": "memory_nn",
+    "architecture": "first",
     "num_epochs": 10,
     "uni_size": 10299,
     "bi_size": 20001,
