@@ -3,6 +3,7 @@ from model.attention_layer import attention
 from tensorflow.contrib.rnn import BasicLSTMCell
 from tensorflow.contrib.rnn import GRUCell
 from model.model_utils import compute_embeddings
+from model.attention_module import multihead_attention, layer_prepostprocess
 import tensorflow as tf
 import tensorflow_hub as hub
 
@@ -63,6 +64,48 @@ def build_model(is_training, sentences, params):
             dense3 = tf.layers.dense(dense2, 2)
 
         return dense3
+
+    if params.architecture == 'memory_nn':
+        embeds_dict = compute_embeddings(sentences, params)
+
+        context_u = embeds_dict['unigrams']['context']
+        question_u = embeds_dict['unigrams']['question']
+        response_u = embeds_dict['unigrams']['response']
+        personal_info_u = embeds_dict['unigrams']['personal_info']
+
+        history = tf.concat([context_u, question_u], axis=1)
+
+        # attention history on PI
+        with tf.variable_scope("self_attention"):
+            d_model = history.shape[-1]
+            y = multihead_attention(history,
+                                    personal_info_u,
+                                    d_model,
+                                    personal_info_u[-1],
+                                    d_model,
+                                    3,
+                                    name="multihead_attention_history_on_pi")
+            history = layer_prepostprocess(history, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+
+
+        #temp
+        history = tf.reduce_sum(history, axis=1)
+        # personal_info_u = tf.reduce_sum(personal_info_u, axis=1)
+        response_u = tf.reduce_sum(response_u, axis=1)
+
+        concatenated = tf.concat([response_u, history, response_u*history], axis=1)
+
+        with tf.variable_scope('fc_1'):
+            dense1 = tf.layers.dense(concatenated, 512, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_2'):
+            dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_3'):
+            dense3 = tf.layers.dense(dense2, 2)
+
+        return dense3
+
 
 
     if params.architecture != 'first':

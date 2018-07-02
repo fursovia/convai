@@ -1,8 +1,8 @@
 {
     "learning_rate": 0.001,
-    "batch_size": 800,
+    "batch_size": 512,
     "train_size": 1900000,
-    "architecture": "elmo",
+    "architecture": "memory_nn",
     "num_epochs": 10,
     "uni_size": 10299,
     "bi_size": 20001,
