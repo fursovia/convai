@@ -236,7 +236,7 @@ def text2vec(dict_from_parlai, word2idx):
     return data, true_answer_id, cands[true_answer_id], raw_dial, cands
 
 
-def vectorize_chars(text, params):
+def vectorize_chars(text, params, trunc='post'):
     chars_seen = []
     chars_ = ngrams(text, 3)
     for char in chars_:
@@ -244,11 +244,11 @@ def vectorize_chars(text, params):
             chars_seen.append(params['char2idx'][char])
         except KeyError:
             chars_seen.append(params['char2idx']['u_k'])
-    c_vect = pad_sequences([chars_seen], maxlen=params['seq_chars_maxlen'], truncating='post')[0]
+    c_vect = pad_sequences([chars_seen], maxlen=params['seq_chars_maxlen'], truncating=trunc)[0]
     return list(c_vect)
 
 
-def vectorize_uni_bi(text, params):
+def vectorize_uni_bi(text, params, trunc='post'):
     words_seen = []
     bis_seen = []
     words_ = text.split()
@@ -265,6 +265,6 @@ def vectorize_uni_bi(text, params):
         except KeyError:
             bis_seen.append(params['bi2idx']['u_k'])
 
-    w_vect = pad_sequences([words_seen], maxlen=params['seq_words_maxlen'], truncating='post')[0]
-    b_vect = pad_sequences([bis_seen], maxlen=params['seq_bis_maxlen'], truncating='post')[0]
+    w_vect = pad_sequences([words_seen], maxlen=params['seq_words_maxlen'], truncating=trunc)[0]
+    b_vect = pad_sequences([bis_seen], maxlen=params['seq_bis_maxlen'], truncating=trunc)[0]
     return list(w_vect) + list(b_vect)

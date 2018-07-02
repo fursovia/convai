@@ -13,11 +13,12 @@ parser.add_argument('--model_dir', default='experiments',
                     help="Experiment directory containing params.json")
 parser.add_argument('--data_dir', default='data',
                     help="Directory containing the dataset")
-parser.add_argument('--final_train', default='N',
-                    help="Whether to train on a whole dataset")
-parser.add_argument('--train_evaluate', default='Y',
+# parser.add_argument('--final_train', default='N',
+#                     help="Whether to train on a whole dataset")
+parser.add_argument('--train_evaluate', default='N',
                     help="train and evaluate each epoch")
-parser.add_argument('--num_gpus', type=int, default=4,
+parser.add_argument('--hub', default='Y')
+parser.add_argument('--num_gpus', type=int, default=1,
                     help="Number of GPUs to train on")
 parser.add_argument('--save_epoch', type=int, default=3,
                     help="Save checkpoints every N epochs")
@@ -75,19 +76,33 @@ if __name__ == '__main__':
     # Train the model
     tf.logging.info("Starting training for {} epoch(s).".format(params.num_epochs))
     if args.train_evaluate == 'Y':
+        if args.hub == 'Y':
+            train_input_fn = input_fn(args.data_dir, params, 'train', True, args.evaluate_every_epoch)
+            eval_input_fn = input_fn(args.data_dir, params, 'eval', False)
+        else:
+            train_input_fn =lambda: (args.data_dir, params, 'train', True, args.evaluate_every_epoch)
+            eval_input_fn =lambda: (args.data_dir, params, 'eval', False)
+
         max_steps = int(((params.train_size / params.batch_size) * params.num_epochs) / args.num_gpus) + global_step
 
         tf.estimator.train_and_evaluate(
             estimator,
             tf.estimator.TrainSpec(
-                input_fn=lambda: input_fn(args.data_dir, params, 'train', True, args.evaluate_every_epoch),
+                input_fn=train_input_fn,
                 max_steps=max_steps),
-            tf.estimator.EvalSpec(input_fn=lambda: input_fn(args.data_dir, params, 'eval', False))
+            tf.estimator.EvalSpec(input_fn=eval_input_fn)
         )
     else:
-        estimator.train(lambda: input_fn(args.data_dir, params, 'train'))
+        if args.hub == 'Y':
+            train_input_fn = input_fn(args.data_dir, params, 'train')
+            eval_input_fn = input_fn(args.data_dir, params, 'eval', False)
+        else:
+            train_input_fn =lambda: (args.data_dir, params, 'train')
+            eval_input_fn =lambda: (args.data_dir, params, 'eval', False)
+
+        estimator.train(input_fn=train_input_fn)
         tf.logging.info("Evaluation on test set.")
-        res = estimator.evaluate(lambda: input_fn(args.data_dir, params, 'eval', False))
+        res = estimator.evaluate(input_fn=eval_input_fn)
 
         for key in res:
             print("{}: {}".format(key, res[key]))

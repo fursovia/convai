@@ -69,8 +69,8 @@ if __name__ == '__main__':
     }
 
     def vect_char(x): return vectorize_chars(x, params=vectorizing_params)
-
     def vect_wb(x): return vectorize_uni_bi(x, params=vectorizing_params)
+
 
     with Pool(5) as p:
         print('1')
