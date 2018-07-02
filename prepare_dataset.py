@@ -1,4 +1,4 @@
-"""tokenize and vectorize"""
+"""скрипт сохраняет три словаря и две таблицы"""
 
 import pickle
 import os

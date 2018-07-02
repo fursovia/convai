@@ -13,7 +13,7 @@ from multiprocessing import Pool
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', default='data', help="Directory containing the dataset")
-parser.add_argument('--nrows', type=int, default=1000)
+parser.add_argument('--nrows', type=int, default=-1)
 
 
 if __name__ == '__main__':
