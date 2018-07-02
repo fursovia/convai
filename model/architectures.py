@@ -28,6 +28,7 @@ def build_model(is_training, sentences, params):
                                   question_u,
                                   response_u,
                                   personal_info_u], axis=1)
+        concatenated = tf.layers.flatten(concatenated)
 
         with tf.variable_scope('fc_1'):
             dense1 = tf.layers.dense(concatenated, 512, activation=tf.nn.relu)

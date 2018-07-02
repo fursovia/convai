@@ -28,15 +28,14 @@ def model_fn(features, labels, mode, params):
         tf.losses.softmax_cross_entropy(onehot_labels=one_hot_labels, logits=logits)
     )
 
-    acc, acc_op = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(preds, axis=1), name='acc')
-
     if mode == tf.estimator.ModeKeys.EVAL:
+        acc, acc_op = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(preds, axis=1), name='acc')
         with tf.variable_scope("metrics"):
             eval_metric_ops = {"accuracy": (acc, acc_op)}
 
         return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
-    tf.summary.scalar('accuracy', acc_op)
+    # tf.summary.scalar('accuracy', acc_op)
 
     global_step = tf.train.get_global_step()  # number of batches seen so far
     train_op = tf.contrib.layers.optimize_loss(
