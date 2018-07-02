@@ -65,13 +65,13 @@ if __name__ == '__main__':
                                        params=params,
                                        config=config)
 
-    if os.path.isfile(os.path.join(args.model_dir, 'checkpoint')):
-        states = tf.train.get_checkpoint_state(model_dir)
-        all_states = states.model_checkpoint_path
-        global_step = int(all_states.split('-')[-1])
-        print('GLOBAL STEP = {}'.format(global_step))
-    else:
-        global_step = 0
+    # if os.path.isfile(os.path.join(args.model_dir, 'checkpoint')):
+    #     states = tf.train.get_checkpoint_state(model_dir)
+    #     all_states = states.model_checkpoint_path
+    #     global_step = int(all_states.split('-')[-1])
+    #     print('GLOBAL STEP = {}'.format(global_step))
+    # else:
+    #     global_step = 0
 
     # Train the model
     tf.logging.info("Starting training for {} epoch(s).".format(params.num_epochs))
