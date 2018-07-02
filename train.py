@@ -3,7 +3,7 @@
 import argparse
 import os
 import tensorflow as tf
-from model.input_fn import input_fn
+from model.input_fn import input_fn, input_fn2
 from model.model_fn import model_fn
 from model.utils import Params
 
@@ -77,11 +77,11 @@ if __name__ == '__main__':
     tf.logging.info("Starting training for {} epoch(s).".format(params.num_epochs))
     if args.train_evaluate == 'Y':
         if args.hub == 'Y':
-            train_input_fn = input_fn(args.data_dir, params, 'train', True, args.evaluate_every_epoch)
-            eval_input_fn = input_fn(args.data_dir, params, 'eval', False)
+            train_input_fn = input_fn2(args.data_dir, params, 'train')
+            eval_input_fn = input_fn2(args.data_dir, params, 'eval', False)
         else:
-            train_input_fn =lambda: (args.data_dir, params, 'train', True, args.evaluate_every_epoch)
-            eval_input_fn =lambda: (args.data_dir, params, 'eval', False)
+            train_input_fn =lambda: input_fn(args.data_dir, params, 'train', True, args.evaluate_every_epoch)
+            eval_input_fn =lambda: input_fn(args.data_dir, params, 'eval', False)
 
         max_steps = int(((params.train_size / params.batch_size) * params.num_epochs) / args.num_gpus) + global_step
 
@@ -94,11 +94,11 @@ if __name__ == '__main__':
         )
     else:
         if args.hub == 'Y':
-            train_input_fn = input_fn(args.data_dir, params, 'train')
-            eval_input_fn = input_fn(args.data_dir, params, 'eval', False)
+            train_input_fn = input_fn2(args.data_dir, params, 'train')
+            eval_input_fn = input_fn2(args.data_dir, params, 'eval', False)
         else:
-            train_input_fn =lambda: (args.data_dir, params, 'train')
-            eval_input_fn =lambda: (args.data_dir, params, 'eval', False)
+            train_input_fn =lambda: input_fn(args.data_dir, params, 'train')
+            eval_input_fn =lambda: input_fn(args.data_dir, params, 'eval', False)
 
         estimator.train(input_fn=train_input_fn)
         tf.logging.info("Evaluation on test set.")

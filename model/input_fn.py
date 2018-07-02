@@ -4,7 +4,7 @@ from model.utils import decode
 import pandas as pd
 
 
-def input_fn2(data_dir, params, file_name, train_time=True, evaluate_epochs=None):
+def input_fn(data_dir, params, file_name, train_time=True, evaluate_epochs=None):
     dataset = tf.data.TFRecordDataset(os.path.join(data_dir, '{}.tfrecords'.format(file_name)))
 
     if train_time:
@@ -21,7 +21,7 @@ def input_fn2(data_dir, params, file_name, train_time=True, evaluate_epochs=None
     return dataset
 
 
-def input_fn(data_dir, params, file_name, train_time=True, evaluate_epochs=None):
+def input_fn2(data_dir, params, file_name, train_time=True, evaluate_epochs=None):
 
     data = pd.read_csv(os.path.join(data_dir, '{}.csv'.format(file_name)))
     data = data.fillna('')
