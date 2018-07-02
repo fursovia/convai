@@ -23,7 +23,7 @@ def build_model(is_training, sentences, params):
     #     return hub.text_embedding_column(key=key, module_spec=module)
 
     if params.architecture == 'elmo':
-        module = 'https://tfhub.dev/google/elmo/2'
+        # module = 'https://tfhub.dev/google/elmo/2'
 
         elmo = hub.Module("https://tfhub.dev/google/elmo/2", trainable=False)
         embs = elmo(sentences['context'])
@@ -40,17 +40,52 @@ def build_model(is_training, sentences, params):
         return dense3
 
     if params.architecture == 'first':
-        embeds_dict = compute_embeddings(sentences, params)
+        # embeds_dict = compute_embeddings(sentences, params)
+        #
+        # context_u = embeds_dict['unigrams']['context']
+        # question_u = embeds_dict['unigrams']['question']
+        # response_u = embeds_dict['unigrams']['response']
+        # personal_info_u = embeds_dict['unigrams']['personal_info']
 
-        context_u = embeds_dict['unigrams']['context']
-        question_u = embeds_dict['unigrams']['question']
-        response_u = embeds_dict['unigrams']['response']
-        personal_info_u = embeds_dict['unigrams']['personal_info']
+        # 'context', 'question', 'reply', 'fact1', 'fact2', 'fact3', 'fact4',
+        # 'fact5'
 
-        concatenated = tf.concat([context_u,
-                                  question_u,
-                                  response_u,
-                                  personal_info_u], axis=1)
+        personal_info = tf.concat([sentences['fact1'], sentences['fact2'], sentences['fact3'], sentences['fact4']],
+                                  axis=-1)
+        history = tf.concat([sentences['question'], sentences['context']], axis=-1)
+
+        elmo = hub.Module("https://tfhub.dev/google/elmo/2", trainable=False)
+        personal_info_emb = elmo(personal_info)['elmo']
+        history_emb = elmo(history)['elmo']
+        reply_emb = elmo(sentences['reply'])['elmo']
+
+        print('personal_info_emb', personal_info_emb.shape)
+        print('history_emb', history_emb.shape)
+        print('reply_emb', reply_emb.shape)
+
+        # attention history on PI
+        with tf.variable_scope("self_attention"):
+            d_model = history_emb.shape[-1]
+            y = multihead_attention(history_emb,
+                                    personal_info_emb,
+                                    d_model,
+                                    personal_info_emb[-1],
+                                    d_model,
+                                    3,
+                                    name="multihead_attention_history_on_pi")
+            history_new = layer_prepostprocess(history_emb, y, 'a', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+
+
+        #temp
+        # history_new = tf.reduce_sum(history_new, axis=1)
+        # response = tf.reduce_sum(reply_emb, axis=1)
+
+        history_new = elmo(history_new)
+        response = elmo(reply_emb)
+        print('history_new', history_new.shape)
+        print('response', response.shape)
+
+        concatenated = tf.concat([response, history_new, response*history_new], axis=1)
 
         concatenated = tf.layers.flatten(concatenated)
 
@@ -90,7 +125,6 @@ def build_model(is_training, sentences, params):
 
         #temp
         history = tf.reduce_sum(history, axis=1)
-        # personal_info_u = tf.reduce_sum(personal_info_u, axis=1)
         response_u = tf.reduce_sum(response_u, axis=1)
 
         concatenated = tf.concat([response_u, history, response_u*history], axis=1)
@@ -106,9 +140,7 @@ def build_model(is_training, sentences, params):
 
         return dense3
 
-
-
-    if params.architecture != 'first':
+    if params.architecture == 'second':
         embeds_dict = compute_embeddings(sentences, params)
 
         context_u = embeds_dict['unigrams']['context']
