@@ -17,7 +17,7 @@ parser.add_argument('--data_dir', default='data',
 #                     help="Whether to train on a whole dataset")
 parser.add_argument('--train_evaluate', default='N',
                     help="train and evaluate each epoch")
-parser.add_argument('--hub', default='Y')
+parser.add_argument('--hub', default='N')
 parser.add_argument('--num_gpus', type=int, default=1,
                     help="Number of GPUs to train on")
 parser.add_argument('--save_epoch', type=int, default=3,

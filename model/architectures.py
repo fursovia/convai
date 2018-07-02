@@ -49,43 +49,88 @@ def build_model(is_training, sentences, params):
 
         # 'context', 'question', 'reply', 'fact1', 'fact2', 'fact3', 'fact4',
         # 'fact5'
+        print('sentences', sentences['fact1'].shape)
+        print('question', sentences['question'].shape, sentences['context'].shape)
 
-        personal_info = tf.concat([sentences['fact1'], sentences['fact2'], sentences['fact3'], sentences['fact4']],
-                                  axis=-1)
+        # personal_info = tf.concat([sentences['fact1'], sentences['fact2'], sentences['fact3'], sentences['fact4']],
+        #                           axis=-1)
         history = tf.concat([sentences['question'], sentences['context']], axis=-1)
+        # print('personal_info', personal_info.shape)
+        # print('history', history.shape)
+
+        # 'context', 'question', 'reply', 'fact1', 'fact2', 'fact3', 'fact4',
+        # 'fact5'
 
         elmo = hub.Module("https://tfhub.dev/google/elmo/2", trainable=False)
-        personal_info_emb = elmo(personal_info)['elmo']
-        history_emb = elmo(history)['elmo']
-        reply_emb = elmo(sentences['reply'])['elmo']
+        history_emb = tf.expand_dims(elmo(history),1)
+        reply_emb = elmo(sentences['reply'])
+        fact1 = tf.expand_dims(elmo(sentences['fact1']),1)
+        fact2 = tf.expand_dims(elmo(sentences['fact2']),1)
+        fact3 = tf.expand_dims(elmo(sentences['fact3']),1)
+        fact4 = tf.expand_dims(elmo(sentences['fact4']),1)
+        fact5 = tf.expand_dims(elmo(sentences['fact5']),1)
+        print('fact1', fact1.shape)
+        personal_info_emb = tf.concat([fact1,fact2,fact3,fact4,fact5], axis=1)
+
+        # elmo = hub.Module("https://tfhub.dev/google/elmo/2", trainable=False)
+        # personal_info_emb = elmo(
+        #     inputs={
+        #         "tokens": personal_info,
+        #         "sequence_len": personal_info.shape[-1]
+        #     },
+        #     signature="tokens",
+        #     as_dict=True)["elmo"]
+        # history_emb = elmo(
+        #     inputs={
+        #         "tokens": history,
+        #         "sequence_len": history.shape[-1]
+        #     },
+        #     signature="tokens",
+        #     as_dict=True)["elmo"]
+        # reply_emb = elmo(
+        #     inputs={
+        #         "tokens": sentences['reply'],
+        #         "sequence_len": sentences['reply'].shape[-1]
+        #     },
+        #     signature="tokens",
+        #     as_dict=True)["elmo"]
+
+        # personal_info_emb = elmo(personal_info)['elmo']
+        # history_emb = elmo(history)['elmo']
+        # reply_emb = elmo(sentences['reply'])['elmo']
 
         print('personal_info_emb', personal_info_emb.shape)
         print('history_emb', history_emb.shape)
         print('reply_emb', reply_emb.shape)
 
         # attention history on PI
-        with tf.variable_scope("self_attention"):
-            d_model = history_emb.shape[-1]
-            y = multihead_attention(history_emb,
-                                    personal_info_emb,
-                                    d_model,
-                                    personal_info_emb[-1],
-                                    d_model,
-                                    3,
-                                    name="multihead_attention_history_on_pi")
-            history_new = layer_prepostprocess(history_emb, y, 'a', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+        # with tf.variable_scope("self_attention"):
+        #     # d_model = history_emb.shape[-1]
+        #     # print('dim', d_model, personal_info_emb[-1])
+        #     d_model = 1024
+        #     y = multihead_attention(history_emb,
+        #                             personal_info_emb,
+        #                             d_model,
+        #                             d_model,
+        #                             d_model,
+        #                             4,
+        #                             name="multihead_attention_history_on_pi")
+        #     history_new = layer_prepostprocess(history_emb, y, 'a', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+
 
 
         #temp
-        # history_new = tf.reduce_sum(history_new, axis=1)
-        # response = tf.reduce_sum(reply_emb, axis=1)
+        history = tf.reduce_sum(history_emb, axis=1)
+        # response_u = tf.reduce_sum(reply_emb, axis=1)
+        response_u = reply_emb
+        personal_info_u = tf.reduce_sum(personal_info_emb, axis=1)
+        print('personal_info_u', personal_info_u.shape)
+        print('history', history.shape)
+        print('response_u', response_u.shape)
 
-        history_new = elmo(history_new)
-        response = elmo(reply_emb)
-        print('history_new', history_new.shape)
-        print('response', response.shape)
 
-        concatenated = tf.concat([response, history_new, response*history_new], axis=1)
+        concatenated = tf.concat([response_u, history, personal_info_u], axis=1)
+        print('concatenated', concatenated.shape)
 
         concatenated = tf.layers.flatten(concatenated)
 
@@ -126,8 +171,11 @@ def build_model(is_training, sentences, params):
         #temp
         history = tf.reduce_sum(history, axis=1)
         response_u = tf.reduce_sum(response_u, axis=1)
+        personal_info_u = tf.reduce_sum(personal_info_u, axis=1)
+        print('last', personal_info_u.shape)
 
-        concatenated = tf.concat([response_u, history, response_u*history], axis=1)
+        concatenated = tf.concat([response_u, history, personal_info_u], axis=1)
+        print('concatenated', concatenated.shape)
 
         with tf.variable_scope('fc_1'):
             dense1 = tf.layers.dense(concatenated, 512, activation=tf.nn.relu)
