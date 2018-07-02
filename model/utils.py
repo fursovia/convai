@@ -1,6 +1,7 @@
 """Вспомогательные функции"""
 
 import json
+import pandas as pd
 import os
 import numpy as np
 import pickle
@@ -268,3 +269,32 @@ def vectorize_uni_bi(text, params, trunc='post'):
     w_vect = pad_sequences([words_seen], maxlen=params['seq_words_maxlen'], truncating=trunc)[0]
     b_vect = pad_sequences([bis_seen], maxlen=params['seq_bis_maxlen'], truncating=trunc)[0]
     return list(w_vect) + list(b_vect)
+
+
+def clean2(text):
+    return clean(text, stem=False)
+
+
+def inference_time(dict_from_tg, responses):
+    cont = clean2(dict_from_tg['context'])
+    quest = clean2(dict_from_tg['question'])
+    resp = responses
+    facts = list(map(clean2, dict_from_tg['facts']))
+
+    conts = [cont] * len(resp)
+    quests = [quest] * len(resp)
+    f1 = [facts[0]] * len(resp)
+    f2 = [facts[1]] * len(resp)
+    f3 = [facts[2]] * len(resp)
+    f4 = [facts[3]] * len(resp)
+    f5 = [facts[4]] * len(resp)
+
+    df = pd.DataFrame({'context': conts,
+                       'question': quests,
+                       'reply': resp,
+                       'fact1': f1,
+                       'fact2': f2,
+                       'fact3': f3,
+                       'fact4': f4,
+                       'fact5': f5})
+    return df

@@ -23,13 +23,32 @@ def build_model(is_training, sentences, params):
     #     return hub.text_embedding_column(key=key, module_spec=module)
 
     if params.architecture == 'elmo':
-        # module = 'https://tfhub.dev/google/elmo/2'
+        elmo = hub.Module("https://tfhub.dev/google/elmo/2")  #, trainable=False)
+        c = elmo(sentences['context'], signature='default', as_dict=True)['default']
+        q = elmo(sentences['question'], signature='default', as_dict=True)['default']
+        r = elmo(sentences['reply'], signature='default', as_dict=True)['default']
+        f1 = elmo(sentences['fact1'], signature='default', as_dict=True)['default']
+        f2 = elmo(sentences['fact2'], signature='default', as_dict=True)['default']
+        f3 = elmo(sentences['fact3'], signature='default', as_dict=True)['default']
+        f4 = elmo(sentences['fact4'], signature='default', as_dict=True)['default']
+        f5 = elmo(sentences['fact5'], signature='default', as_dict=True)['default']
+        facts = tf.reshape(tf.concat([f1, f2, f3, f4, f5], axis=1), [-1, 5, 1024])
 
-        elmo = hub.Module("https://tfhub.dev/google/elmo/2", trainable=False)
-        embs = elmo(sentences['context'])
+        with tf.name_scope("closest_fact"):
+            dot_product = tf.matmul(tf.expand_dims(q, 1), facts, transpose_b=True)  # [None, 5]
+            dot_product = tf.reshape(dot_product, [-1, 5])
+            max_dot_product = tf.reduce_max(dot_product, axis=1, keepdims=True)  # how close?
+            max_fact_id = tf.argmax(dot_product, axis=1)
+            mask = tf.cast(tf.one_hot(max_fact_id, 5), tf.bool)
+            closest_info = tf.boolean_mask(facts, mask, axis=0)
+
+        concatenated2 = tf.concat([c, q, r, closest_info, max_dot_product], axis=1)
+
+        with tf.variable_scope('fc_0'):
+            dense0 = tf.layers.dense(concatenated2, 1024, activation=tf.nn.relu)
 
         with tf.variable_scope('fc_1'):
-            dense1 = tf.layers.dense(embs, 512, activation=tf.nn.relu)
+            dense1 = tf.layers.dense(dense0, 512, activation=tf.nn.relu)
 
         with tf.variable_scope('fc_2'):
             dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)

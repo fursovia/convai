@@ -45,3 +45,14 @@ def input_fn(data_dir, params, file_name, train_time=True, evaluate_epochs=None)
             shuffle=False)
 
     return train_input
+
+
+def pred_input_fn(df):
+
+    data = df
+    train_input = tf.estimator.inputs.pandas_input_fn(
+            data,
+            num_epochs=1,
+            shuffle=False)
+
+    return train_input
