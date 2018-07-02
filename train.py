@@ -2,11 +2,8 @@
 
 import argparse
 import os
-
 import tensorflow as tf
-from model.input_fn import train_input_fn
-from model.input_fn import eval_input_fn
-from model.input_fn import final_train_input_fn
+from model.input_fn import input_fn
 from model.model_fn import model_fn
 from model.utils import Params
 
@@ -14,12 +11,18 @@ from model.utils import Params
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='experiments',
                     help="Experiment directory containing params.json")
-parser.add_argument('--data_dir', default='data/sample',
+parser.add_argument('--data_dir', default='data',
                     help="Directory containing the dataset")
 parser.add_argument('--final_train', default='N',
                     help="Whether to train on a whole dataset")
-parser.add_argument('--num_gpus', type=int, default=1,
+parser.add_argument('--train_evaluate', default='Y',
+                    help="train and evaluate each epoch")
+parser.add_argument('--num_gpus', type=int, default=4,
                     help="Number of GPUs to train on")
+parser.add_argument('--save_epoch', type=int, default=3,
+                    help="Save checkpoints every N epochs")
+parser.add_argument('--evaluate_every_epoch', type=int, default=3,
+                    help="Evaluate every X epochs")
 
 
 if __name__ == '__main__':
@@ -34,44 +37,57 @@ if __name__ == '__main__':
 
     # Define the model
     tf.logging.info("Creating the model...")
-    if args.num_gpus > 1:
+    if (args.num_gpus > 1):
         distribution = tf.contrib.distribute.MirroredStrategy(num_gpus=args.num_gpus)
     else:
         distribution = None
 
-    session_config = tf.ConfigProto(device_count={'GPU': 1})
-    session_config.gpu_options.allow_growth = True
-    # session_config.gpu_options.per_process_gpu_memory_fraction = 0.5
+    # session_config = tf.ConfigProto(allow_soft_placement=True)  # log_device_placement=True
+    # session_config.gpu_options.allow_growth = True  # starts out allocating very little memory
+    checkpoint_every = int(((params.train_size / params.batch_size) * args.save_epoch) / args.num_gpus)
 
-    config = tf.estimator.RunConfig(tf_random_seed=43,
-                                    model_dir=args.model_dir,
+    print('Train size = {}'.format(params.train_size))
+    print('Batch size = {}'.format(params.batch_size))
+    print('Checkpoint every {} steps'.format(checkpoint_every))
+
+    model_dir = args.model_dir
+
+    config = tf.estimator.RunConfig(tf_random_seed=230,
+                                    model_dir=model_dir,
                                     save_summary_steps=params.save_summary_steps,
                                     train_distribute=distribution,
-                                    session_config=session_config)
+                                    # session_config=session_config,
+                                    save_checkpoints_steps=checkpoint_every,
+                                    keep_checkpoint_max=None)  # all checkpoint files are kept
 
     estimator = tf.estimator.Estimator(model_fn,
                                        params=params,
                                        config=config)
 
-    if args.final_train == 'N':
-        # Train the model
-        tf.logging.info("Starting training for {} epoch(s).".format(params.num_epochs))
-        estimator.train(lambda: train_input_fn(args.data_dir, params))
-
-        # Evaluate the model on the valid set
-        tf.logging.info("Evaluation on valid set.")
-        res = estimator.evaluate(lambda: eval_input_fn(args.data_dir, params))
-
-        for key in res:
-            print("{}: {}".format(key, res[key]))
+    if os.path.isfile(os.path.join(args.model_dir, 'checkpoint')):
+        states = tf.train.get_checkpoint_state(model_dir)
+        all_states = states.model_checkpoint_path
+        global_step = int(all_states.split('-')[-1])
+        print('GLOBAL STEP = {}'.format(global_step))
     else:
-        # Train the model
-        tf.logging.info("Starting training for {} epoch(s).".format(params.num_epochs))
-        estimator.train(lambda: final_train_input_fn(args.data_dir, params))
+        global_step = 0
 
-        # Evaluate the model on the valid set
-        tf.logging.info("Evaluation on valid set.")
-        res = estimator.evaluate(lambda: eval_input_fn(args.data_dir, params))
+    # Train the model
+    tf.logging.info("Starting training for {} epoch(s).".format(params.num_epochs))
+    if args.train_evaluate == 'Y':
+        max_steps = int(((params.train_size / params.batch_size) * params.num_epochs) / args.num_gpus) + global_step
+
+        tf.estimator.train_and_evaluate(
+            estimator,
+            tf.estimator.TrainSpec(
+                input_fn=lambda: input_fn(args.data_dir, params, 'train', True, args.evaluate_every_epoch),
+                max_steps=max_steps),
+            tf.estimator.EvalSpec(input_fn=lambda: input_fn(args.data_dir, params, 'eval', False))
+        )
+    else:
+        estimator.train(lambda: input_fn(args.data_dir, params, 'train'))
+        tf.logging.info("Evaluation on test set.")
+        res = estimator.evaluate(lambda: input_fn(args.data_dir, params, 'eval', False))
 
         for key in res:
             print("{}: {}".format(key, res[key]))

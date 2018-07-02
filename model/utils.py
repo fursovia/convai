@@ -97,12 +97,18 @@ def convert_to_records(data, name, save_to):
     with tf.python_io.TFRecordWriter(filename) as writer:
         for index in range(num_examples):
             Y_ = Y[index]
-            X_ = X[index]
+            cont = X[index][0]
+            quest = X[index][1]
+            resp = X[index][2]
+            facts = X[index][3:].ravel()
             example = tf.train.Example(
                 features=tf.train.Features(
                     feature={
                         'label': _int64_feature([Y_]),
-                        'sent': _int64_feature(X_)
+                        'cont': _int64_feature(cont),
+                        'quest': _int64_feature(quest),
+                        'resp': _int64_feature(resp),
+                        'facts': _int64_feature(facts)
                     }
                 )
             )
@@ -110,28 +116,29 @@ def convert_to_records(data, name, save_to):
 
 
 def decode(serialized_example):
-    """Parses an image and label from the given serialized_example."""
-    features = tf.parse_single_example(
-        serialized_example,
-        features={
-            'label': tf.FixedLenFeature([], tf.int64),
-            'sent': tf.FixedLenFeature([200], tf.int64)
-        })
+    """Parses an image and label from the given `serialized_example`."""
 
-    label = tf.cast(features['label'], tf.int64)
-    sent = tf.cast(features['sent'], tf.int64)
+    features_pattern = {'label': tf.FixedLenFeature([], tf.int64)}
+
+    features_pattern['cont'] = tf.FixedLenFeature([140], tf.int64)
+    features_pattern['quest'] = tf.FixedLenFeature([140], tf.int64)
+    features_pattern['resp'] = tf.FixedLenFeature([140], tf.int64)
+    features_pattern['facts'] = tf.FixedLenFeature([140*5], tf.int64)
+    features = tf.parse_single_example(serialized_example, features=features_pattern)
+    label = features.pop('label')
+    sent = features
 
     return sent, label
 
 
-def clean(text, with_stopwords=True):
+def clean(text, stem=True):
     text = text.strip().lower()
     text = re.sub('[^\w\s]', ' ', text)
     text = re.sub('^\d+\s|\s\d+\s|\s\d+$', " <num> ", text)
-    if with_stopwords:
+    if stem:
         return ' '.join(snowball_stemmer.stem(word) for word in text.split())
     else:
-        return ' '.join(snowball_stemmer.stem(word) for word in text.split() if word not in stop_words)
+        return text
 
 
 def vectorize_text(text, word2idx, maxlen=20, truncating_type='post', only_words=True):
@@ -145,13 +152,12 @@ def vectorize_text(text, word2idx, maxlen=20, truncating_type='post', only_words
         except:
             continue
 
-    if not only_words:
-        bi_ = ngrams(words_, 2)
-        for bi in bi_:
-            try:
-                vec_seen.append(word2idx[bi])
-            except:
-                continue
+    bi_ = ngrams(words_, 2)
+    for bi in bi_:
+        try:
+            vec_seen.append(word2idx[bi])
+        except:
+            continue
 
     return pad_sequences([vec_seen], maxlen=maxlen, truncating=truncating_type)[0]
 
@@ -228,3 +234,37 @@ def text2vec(dict_from_parlai, word2idx):
     data = np.hstack((context_vect, question_vect, reply_vect, np.array(info_vect).reshape(-1, 100)))
 
     return data, true_answer_id, cands[true_answer_id], raw_dial, cands
+
+
+def vectorize_chars(text, params):
+    chars_seen = []
+    chars_ = ngrams(text, 3)
+    for char in chars_:
+        try:
+            chars_seen.append(params['char2idx'][char])
+        except KeyError:
+            chars_seen.append(params['char2idx']['u_k'])
+    c_vect = pad_sequences([chars_seen], maxlen=params['seq_chars_maxlen'], truncating='post')[0]
+    return list(c_vect)
+
+
+def vectorize_uni_bi(text, params):
+    words_seen = []
+    bis_seen = []
+    words_ = text.split()
+    bi_ = ngrams(words_, 2)
+    for word in words_:
+        try:
+            words_seen.append(params['uni2idx'][word])
+        except KeyError:
+            words_seen.append(params['uni2idx']['u_k'])
+
+    for bi in bi_:
+        try:
+            bis_seen.append(params['bi2idx'][bi])
+        except KeyError:
+            bis_seen.append(params['bi2idx']['u_k'])
+
+    w_vect = pad_sequences([words_seen], maxlen=params['seq_words_maxlen'], truncating='post')[0]
+    b_vect = pad_sequences([bis_seen], maxlen=params['seq_bis_maxlen'], truncating='post')[0]
+    return list(w_vect) + list(b_vect)
