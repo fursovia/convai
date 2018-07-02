@@ -4,6 +4,8 @@ from tensorflow.contrib.rnn import BasicLSTMCell
 from tensorflow.contrib.rnn import GRUCell
 from model.model_utils import compute_embeddings
 import tensorflow as tf
+import tensorflow_hub as hub
+
 
 def build_model(is_training, sentences, params):
     """Compute logits of the model (output distribution)
@@ -16,6 +18,26 @@ def build_model(is_training, sentences, params):
     Returns:
         output: (tf.Tensor) output of the model
     """
+    # def get_elmo(module, key):
+    #     return hub.text_embedding_column(key=key, module_spec=module)
+
+    if params.architecture == 'elmo':
+        module = 'https://tfhub.dev/google/elmo/2'
+
+        elmo = hub.Module("https://tfhub.dev/google/elmo/2", trainable=False)
+        embs = elmo(sentences['context'])
+
+        with tf.variable_scope('fc_1'):
+            dense1 = tf.layers.dense(embs, 512, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_2'):
+            dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_3'):
+            dense3 = tf.layers.dense(dense2, 2)
+
+        return dense3
+
     if params.architecture == 'first':
         embeds_dict = compute_embeddings(sentences, params)
 
@@ -28,6 +50,7 @@ def build_model(is_training, sentences, params):
                                   question_u,
                                   response_u,
                                   personal_info_u], axis=1)
+
         concatenated = tf.layers.flatten(concatenated)
 
         with tf.variable_scope('fc_1'):
