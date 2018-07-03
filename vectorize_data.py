@@ -20,8 +20,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    table_path = os.path.join(args.data_dir, 'labeled_df.csv')
-    table_path2 = os.path.join(args.data_dir, 'labeled_char_df.csv')
+    table_path = os.path.join(args.data_dir, 'cleaned_df.csv')
+    table_path2 = os.path.join(args.data_dir, 'cleaned_char_df.csv')
 
     assert os.path.isfile(table_path) and os.path.isfile(table_path2), 'No files found at {}'.format(table_path)
 
@@ -117,14 +117,21 @@ if __name__ == '__main__':
                       wb_res6, c_res6,
                       wb_res7, c_res7)).reshape(-1, 8, 140)
 
+    responses = np.hstack((wb_res2, c_res2)).reshape(-1, 8, 140)
+
     print('data shape = {}'.format(data.shape))
 
     Y = df_cleaned['labels'].values.ravel()
 
-    Ytr, Yev, Xtr, Xev = train_test_split(Y,
-                                          data,
-                                          test_size=0.1,
-                                          random_state=24)
+    Ytr, Yev, Xtr, Xev, Rtr, Rte = train_test_split(Y,
+                                                    data,
+                                                    responses,
+                                                    test_size=0.1,
+                                                    random_state=24)
+
+    pickle.dump(responses, open(os.path.join(args.data_dir, 'full_R.pkl'), 'wb'))
+    pickle.dump(Rtr, open(os.path.join(args.data_dir, 'train_R.pkl'), 'wb'))
+    pickle.dump(Rte, open(os.path.join(args.data_dir, 'test_R.pkl'), 'wb'))
 
     sample_path = os.path.join(args.data_dir, 'sample')
 

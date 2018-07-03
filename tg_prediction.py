@@ -1,19 +1,10 @@
 import tensorflow as tf
-import argparse
 import os
 from model.utils import Params
 from model.model_fn import model_fn
 import pickle
 import numpy as np
-from model.input_fn import pred_input_fn
 from model.utils import inference_time
-import pandas as pd
-from model.input_fn import pred_input_fn
-
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='experiments')
-parser.add_argument('--data_dir', default='data')
 
 
 class serving_input_fn:
@@ -25,12 +16,12 @@ class serving_input_fn:
         self.receiver_tensors_alternatives = None
 
 class pred_agent():
-    def __init__(self, args, super_dict, raw_utterances, vectorized_responses):
+    def __init__(self, args, raw_utterances, vectorized_responses, embeded_responses):
         self.args = args
         self.estimator = self.create_model()
-        self.super_dict = super_dict
         self.raw_utterances = raw_utterances
         self.vectorized_responses = vectorized_responses
+        self.embeded_responses = embeded_responses
 
 
     def create_model(self):
@@ -55,7 +46,14 @@ class pred_agent():
             serving_input_fn
         )
 
-    def predict(self):
+    def choose_from_knn(self, q_embeddings):
+        _, indexes = None  # knn(q_embeddings)
+        chosen_vectorized_elements = self.vectorized_responses[indexes]
+        chosen_raw_elemenst = self.raw_utterances[indexes]
+
+        return chosen_vectorized_elements, chosen_raw_elemenst
+
+    def predict(self, super_dict):
 
         vocabs_path = os.path.join(self.args.data_dir, 'vocabs')
         uni2idx_path = os.path.join(vocabs_path, 'uni2idx.pkl')
@@ -68,9 +66,19 @@ class pred_agent():
 
         vocabs = [uni2idx, bi2idx, char2idx]
 
-        data_to_predict = inference_time(self.super_dict, self.vectorized_responses, vocabs)
+        data_to_predict_knn = inference_time(super_dict, self.vectorized_responses, vocabs, 1)  # ['q_emb']
+        test_predictions_knn = self.predictor({'text': data_to_predict_knn})
 
-        test_predictions = self.predictor({'text': data_to_predict})  #['y_prob']
+        qemb = []
+        for i, p in enumerate(test_predictions_knn):
+            qemb.append(p['q_emb'])
+        qemb = np.array(qemb, float).reshape(-1, 300)
+
+        chosen_vects, chosen_raw = self.choose_from_knn(qemb)
+
+        data_to_predict = inference_time(super_dict, chosen_vects, vocabs)
+
+        test_predictions = self.predictor({'text': data_to_predict})  # ['y_prob']
 
         preds = []
         for i, p in enumerate(test_predictions):
@@ -79,6 +87,6 @@ class pred_agent():
         preds = np.array(preds, float)
         max_element = np.argmax(preds)
 
-        what_to_return = self.raw_utterances[max_element]
+        what_to_return = chosen_raw[max_element]
 
         return what_to_return

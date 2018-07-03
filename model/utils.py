@@ -301,7 +301,7 @@ def clean2(text):
 #     return df
 
 
-def inference_time(dict_from_tg, responses, vocabs):
+def inference_time(dict_from_tg, responses, vocabs, repeat=None):
 
     uni2idx, bi2idx, char2idx = vocabs
 
@@ -331,22 +331,29 @@ def inference_time(dict_from_tg, responses, vocabs):
     f4 = facts[3]
     f5 = facts[4]
 
-    wb_res = np.repeat(vect_wb_(cont), resp.shape[0], axis=0)
-    c_res = np.repeat(vect_char_(cont), resp.shape[0], axis=0)
-    wb_res1 = np.repeat(vect_wb(quest), resp.shape[0], axis=0)
-    c_res1 = np.repeat(vect_char(quest), resp.shape[0], axis=0)
-    wb_res2 = resp[:, :40]
-    c_res2 = resp[:, 40:140]
-    wb_res3 = np.repeat(vect_wb(f1), resp.shape[0], axis=0)
-    c_res3 = np.repeat(vect_char(f1), resp.shape[0], axis=0)
-    wb_res4 = np.repeat(vect_wb(f2), resp.shape[0], axis=0)
-    c_res4 = np.repeat(vect_char(f2), resp.shape[0], axis=0)
-    wb_res5 = np.repeat(vect_wb(f3), resp.shape[0], axis=0)
-    c_res5 = np.repeat(vect_char(f3), resp.shape[0], axis=0)
-    wb_res6 = np.repeat(vect_wb(f4), resp.shape[0], axis=0)
-    c_res6 = np.repeat(vect_char(f4), resp.shape[0], axis=0)
-    wb_res7 = np.repeat(vect_wb(f5), resp.shape[0], axis=0)
-    c_res7 = np.repeat(vect_char(f5), resp.shape[0], axis=0)
+    if repeat is None:
+        rep = resp.shape[0]
+        wb_res2 = resp[:, :40]
+        c_res2 = resp[:, 40:140]
+    else:
+        rep = 1
+        wb_res2 = resp[0, :40].reshape(-1, 40)
+        c_res2 = resp[0, 40:140].reshape(-1, 100)
+
+    wb_res = np.repeat(vect_wb_(cont), rep, axis=0)
+    c_res = np.repeat(vect_char_(cont), rep, axis=0)
+    wb_res1 = np.repeat(vect_wb(quest), rep, axis=0)
+    c_res1 = np.repeat(vect_char(quest), rep, axis=0)
+    wb_res3 = np.repeat(vect_wb(f1), rep, axis=0)
+    c_res3 = np.repeat(vect_char(f1), rep, axis=0)
+    wb_res4 = np.repeat(vect_wb(f2), rep, axis=0)
+    c_res4 = np.repeat(vect_char(f2), rep, axis=0)
+    wb_res5 = np.repeat(vect_wb(f3), rep, axis=0)
+    c_res5 = np.repeat(vect_char(f3), rep, axis=0)
+    wb_res6 = np.repeat(vect_wb(f4), rep, axis=0)
+    c_res6 = np.repeat(vect_char(f4), rep, axis=0)
+    wb_res7 = np.repeat(vect_wb(f5), rep, axis=0)
+    c_res7 = np.repeat(vect_char(f5), rep, axis=0)
 
     data = np.hstack((wb_res, c_res,
                       wb_res1, c_res1,

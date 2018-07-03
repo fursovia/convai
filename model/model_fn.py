@@ -8,18 +8,20 @@ def model_fn(features, labels, mode, params):
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
     with tf.variable_scope('model'):
-        logits, qr_sim = build_model(is_training, features, params)
+        logits, qr_sim, q_emb, r_emb = build_model(is_training, features, params)
 
     preds = tf.nn.softmax(logits)
 
     if mode == tf.estimator.ModeKeys.PREDICT:
         predictions = {'y_prob': preds[:, 1],
-                       'y_pred': tf.argmax(preds, axis=1)}
+                       'y_pred': tf.argmax(preds, axis=1),
+                       'q_emb': q_emb,
+                       'r_emb': r_emb}
 
         return tf.estimator.EstimatorSpec(mode=mode,
                                           predictions=predictions,
                                           export_outputs={
-                                              'predict': tf.estimator.export.PredictOutput(predictions)
+                                          'predict': tf.estimator.export.PredictOutput(predictions)
                                           })
 
     one_hot_labels = tf.one_hot(labels, 2)
