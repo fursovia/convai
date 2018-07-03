@@ -15,14 +15,14 @@ parser.add_argument('--data_dir', default='data',
                     help="Directory containing the dataset")
 # parser.add_argument('--final_train', default='N',
 #                     help="Whether to train on a whole dataset")
-parser.add_argument('--train_evaluate', default='N',
+parser.add_argument('--train_evaluate', default='Y',
                     help="train and evaluate each epoch")
-parser.add_argument('--hub', default='Y')
-parser.add_argument('--num_gpus', type=int, default=1,
+parser.add_argument('--hub', default='N')
+parser.add_argument('--num_gpus', type=int, default=4,
                     help="Number of GPUs to train on")
 parser.add_argument('--save_epoch', type=int, default=3,
                     help="Save checkpoints every N epochs")
-parser.add_argument('--evaluate_every_epoch', type=int, default=3,
+parser.add_argument('--evaluate_every_epoch', type=int, default=5,
                     help="Evaluate every X epochs")
 
 
@@ -80,8 +80,8 @@ if __name__ == '__main__':
             train_input_fn = input_fn(args.data_dir, params, 'train', True, args.evaluate_every_epoch)
             eval_input_fn = input_fn(args.data_dir, params, 'eval', False)
         else:
-            train_input_fn =lambda: (args.data_dir, params, 'train', True, args.evaluate_every_epoch)
-            eval_input_fn =lambda: (args.data_dir, params, 'eval', False)
+            train_input_fn =lambda: input_fn(args.data_dir, params, 'train', True, args.evaluate_every_epoch)
+            eval_input_fn =lambda: input_fn(args.data_dir, params, 'eval', False)
 
         max_steps = int(((params.train_size / params.batch_size) * params.num_epochs) / args.num_gpus) + global_step
 
@@ -97,12 +97,12 @@ if __name__ == '__main__':
             train_input_fn = input_fn(args.data_dir, params, 'train')
             eval_input_fn = input_fn(args.data_dir, params, 'eval', False)
         else:
-            train_input_fn =lambda: (args.data_dir, params, 'train')
-            eval_input_fn =lambda: (args.data_dir, params, 'eval', False)
+            train_input_fn =lambda: input_fn(args.data_dir, params, 'train')
+            eval_input_fn =lambda: input_fn(args.data_dir, params, 'eval', False)
 
-        estimator.train(input_fn=train_input_fn)
+        estimator.train(lambda: input_fn(args.data_dir, params, 'train'))
         tf.logging.info("Evaluation on test set.")
-        res = estimator.evaluate(input_fn=eval_input_fn)
+        res = estimator.evaluate(lambda: input_fn(args.data_dir, params, 'eval', False))
 
         for key in res:
             print("{}: {}".format(key, res[key]))
