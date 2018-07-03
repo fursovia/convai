@@ -3,7 +3,7 @@
 import argparse
 import os
 import tensorflow as tf
-from model.input_fn import input_fn
+from model.input_fn import input_fn, input_fn2
 from model.model_fn import model_fn
 from model.utils import Params
 
@@ -18,7 +18,11 @@ parser.add_argument('--data_dir', default='data',
 parser.add_argument('--train_evaluate', default='Y',
                     help="train and evaluate each epoch")
 parser.add_argument('--hub', default='N')
+<<<<<<< HEAD
 parser.add_argument('--num_gpus', type=int, default=4,
+=======
+parser.add_argument('--num_gpus', type=int, default=1,
+>>>>>>> 4a5ecfd4bcadeed11d8c0a7712998d81c52e13b8
                     help="Number of GPUs to train on")
 parser.add_argument('--save_epoch', type=int, default=3,
                     help="Save checkpoints every N epochs")
@@ -65,20 +69,20 @@ if __name__ == '__main__':
                                        params=params,
                                        config=config)
 
-    if os.path.isfile(os.path.join(args.model_dir, 'checkpoint')):
-        states = tf.train.get_checkpoint_state(model_dir)
-        all_states = states.model_checkpoint_path
-        global_step = int(all_states.split('-')[-1])
-        print('GLOBAL STEP = {}'.format(global_step))
-    else:
-        global_step = 0
+    # if os.path.isfile(os.path.join(args.model_dir, 'checkpoint')):
+    #     states = tf.train.get_checkpoint_state(model_dir)
+    #     all_states = states.model_checkpoint_path
+    #     global_step = int(all_states.split('-')[-1])
+    #     print('GLOBAL STEP = {}'.format(global_step))
+    # else:
+    #     global_step = 0
 
     # Train the model
     tf.logging.info("Starting training for {} epoch(s).".format(params.num_epochs))
     if args.train_evaluate == 'Y':
         if args.hub == 'Y':
-            train_input_fn = input_fn(args.data_dir, params, 'train', True, args.evaluate_every_epoch)
-            eval_input_fn = input_fn(args.data_dir, params, 'eval', False)
+            train_input_fn = input_fn2(args.data_dir, params, 'train')
+            eval_input_fn = input_fn2(args.data_dir, params, 'eval', False)
         else:
             train_input_fn =lambda: input_fn(args.data_dir, params, 'train', True, args.evaluate_every_epoch)
             eval_input_fn =lambda: input_fn(args.data_dir, params, 'eval', False)
@@ -94,8 +98,8 @@ if __name__ == '__main__':
         )
     else:
         if args.hub == 'Y':
-            train_input_fn = input_fn(args.data_dir, params, 'train')
-            eval_input_fn = input_fn(args.data_dir, params, 'eval', False)
+            train_input_fn = input_fn2(args.data_dir, params, 'train')
+            eval_input_fn = input_fn2(args.data_dir, params, 'eval', False)
         else:
             train_input_fn =lambda: input_fn(args.data_dir, params, 'train')
             eval_input_fn =lambda: input_fn(args.data_dir, params, 'eval', False)
