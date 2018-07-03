@@ -341,12 +341,17 @@ def build_model(is_training, sentences, params):
 
         #temp
         history = tf.reduce_sum(history, axis=1)
-        response_u = tf.reduce_sum(response_u, axis=1)
-        personal_info_u = tf.reduce_sum(personal_info_u, axis=1)
-        print('last', personal_info_u.shape)
+        response = tf.reduce_sum(response_u, axis=1)
+        # personal_info_u = tf.reduce_sum(personal_info_u, axis=1)
+        # print('last', personal_info_u.shape)
 
-        # response_u, history,
-        concatenated = tf.concat([history*response_u], axis=1)
+        #compute simularity
+        response_normalized = tf.nn.l2_normalize(response, axis=1)
+        history_normalized = tf.nn.l2_normalize(history, axis=1)
+        distance = tf.maximum(1 - tf.matmul(history_normalized, response_normalized, adjoint_b=True), 0.0)
+
+        # response, history,
+        concatenated = tf.concat([response, history, history*response], axis=1)
         print('concatenated', concatenated.shape)
 
         with tf.variable_scope('fc_1'):
@@ -358,7 +363,35 @@ def build_model(is_training, sentences, params):
         with tf.variable_scope('fc_3'):
             dense3 = tf.layers.dense(dense2, 2)
 
-        return dense3
+        return dense3, distance
+
+    if params.architecture == 'memory_nn_batch':
+        embeds_dict = compute_embeddings(sentences, params)
+
+        context_u = embeds_dict['unigrams']['context']
+        question_u = embeds_dict['unigrams']['question']
+        response_u = embeds_dict['unigrams']['response']
+        personal_info_u = embeds_dict['unigrams']['personal_info']
+
+        history = tf.concat([context_u, question_u], axis=1)
+
+        # attention history on PI
+        with tf.variable_scope("self_attention"):
+            d_model = 300 #history.shape[-1]
+            y = multihead_attention(history,
+                                    personal_info_u,
+                                    d_model,
+                                    300, #personal_info_u[-1],
+                                    d_model,
+                                    3,
+                                    name="multihead_attention_history_on_pi")
+            history = layer_prepostprocess(history, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+
+        #temp
+        history = tf.reduce_sum(history, axis=1)
+        response = tf.reduce_sum(response_u, axis=1)
+
+        return history, response
 
     if params.architecture == 'second':
         embeds_dict = compute_embeddings(sentences, params)
