@@ -11,6 +11,7 @@ from nltk.stem import SnowballStemmer
 from nltk.corpus import stopwords
 from nltk import ngrams
 from keras.preprocessing.sequence import pad_sequences
+from multiprocessing import Pool
 
 
 snowball_stemmer = SnowballStemmer("english")
@@ -272,29 +273,95 @@ def vectorize_uni_bi(text, params, trunc='post'):
 
 
 def clean2(text):
-    return clean(text, stem=False)
+    return clean(text, stem=True)
 
 
-def inference_time(dict_from_tg, responses):
-    cont = clean2(dict_from_tg['context'])
+# def inference_time(dict_from_tg, responses):
+#     cont = clean2(dict_from_tg['context'])
+#     quest = clean2(dict_from_tg['question'])
+#     resp = responses
+#     facts = list(map(clean2, dict_from_tg['facts']))
+#
+#     conts = [cont] * len(resp)
+#     quests = [quest] * len(resp)
+#     f1 = [facts[0]] * len(resp)
+#     f2 = [facts[1]] * len(resp)
+#     f3 = [facts[2]] * len(resp)
+#     f4 = [facts[3]] * len(resp)
+#     f5 = [facts[4]] * len(resp)
+#
+#     df = pd.DataFrame({'context': conts,
+#                        'question': quests,
+#                        'reply': resp,
+#                        'fact1': f1,
+#                        'fact2': f2,
+#                        'fact3': f3,
+#                        'fact4': f4,
+#                        'fact5': f5})
+#     return df
+
+
+def inference_time(dict_from_tg, responses, vocabs, repeat=None):
+
+    uni2idx, bi2idx, char2idx = vocabs
+
+    vectorizing_params = {
+        'uni2idx': uni2idx,
+        'bi2idx': bi2idx,
+        'char2idx': char2idx,
+        'seq_words_maxlen': 20,
+        'seq_bis_maxlen': 20,
+        'seq_chars_maxlen': 100
+    }
+
+    def vect_char(x): return np.array(vectorize_chars(x, params=vectorizing_params), int).reshape(-1, 100)
+    def vect_wb(x): return np.array(vectorize_uni_bi(x, params=vectorizing_params), int).reshape(-1, 40)
+
+    def vect_char_(x): return np.array(vectorize_chars(x, params=vectorizing_params, trunc='pre'), int).reshape(-1, 100)
+    def vect_wb_(x): return np.array(vectorize_uni_bi(x, params=vectorizing_params, trunc='pre'), int).reshape(-1, 40)
+
+    cont = clean2(' '.join(dict_from_tg['context']))
     quest = clean2(dict_from_tg['question'])
     resp = responses
     facts = list(map(clean2, dict_from_tg['facts']))
 
-    conts = [cont] * len(resp)
-    quests = [quest] * len(resp)
-    f1 = [facts[0]] * len(resp)
-    f2 = [facts[1]] * len(resp)
-    f3 = [facts[2]] * len(resp)
-    f4 = [facts[3]] * len(resp)
-    f5 = [facts[4]] * len(resp)
+    f1 = facts[0]
+    f2 = facts[1]
+    f3 = facts[2]
+    f4 = facts[3]
+    f5 = facts[4]
 
-    df = pd.DataFrame({'context': conts,
-                       'question': quests,
-                       'reply': resp,
-                       'fact1': f1,
-                       'fact2': f2,
-                       'fact3': f3,
-                       'fact4': f4,
-                       'fact5': f5})
-    return df
+    if repeat is None:
+        rep = resp.shape[0]
+        wb_res2 = resp[:, :40]
+        c_res2 = resp[:, 40:140]
+    else:
+        rep = 1
+        wb_res2 = resp[0, :40].reshape(-1, 40)
+        c_res2 = resp[0, 40:140].reshape(-1, 100)
+
+    wb_res = np.repeat(vect_wb_(cont), rep, axis=0)
+    c_res = np.repeat(vect_char_(cont), rep, axis=0)
+    wb_res1 = np.repeat(vect_wb(quest), rep, axis=0)
+    c_res1 = np.repeat(vect_char(quest), rep, axis=0)
+    wb_res3 = np.repeat(vect_wb(f1), rep, axis=0)
+    c_res3 = np.repeat(vect_char(f1), rep, axis=0)
+    wb_res4 = np.repeat(vect_wb(f2), rep, axis=0)
+    c_res4 = np.repeat(vect_char(f2), rep, axis=0)
+    wb_res5 = np.repeat(vect_wb(f3), rep, axis=0)
+    c_res5 = np.repeat(vect_char(f3), rep, axis=0)
+    wb_res6 = np.repeat(vect_wb(f4), rep, axis=0)
+    c_res6 = np.repeat(vect_char(f4), rep, axis=0)
+    wb_res7 = np.repeat(vect_wb(f5), rep, axis=0)
+    c_res7 = np.repeat(vect_char(f5), rep, axis=0)
+
+    data = np.hstack((wb_res, c_res,
+                      wb_res1, c_res1,
+                      wb_res2, c_res2,
+                      wb_res3, c_res3,
+                      wb_res4, c_res4,
+                      wb_res5, c_res5,
+                      wb_res6, c_res6,
+                      wb_res7, c_res7)).reshape(-1, 8, 140)
+
+    return data

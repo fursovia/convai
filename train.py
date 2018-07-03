@@ -15,12 +15,12 @@ parser.add_argument('--data_dir', default='data_convai',
                     help="Directory containing the dataset")
 # parser.add_argument('--final_train', default='N',
 #                     help="Whether to train on a whole dataset")
-parser.add_argument('--train_evaluate', default='Y',
+parser.add_argument('--train_evaluate', default='N',
                     help="train and evaluate each epoch")
 parser.add_argument('--hub', default='N')
-parser.add_argument('--num_gpus', type=int, default=1,
+parser.add_argument('--num_gpus', type=int, default=4,
                     help="Number of GPUs to train on")
-parser.add_argument('--save_epoch', type=int, default=3,
+parser.add_argument('--save_epoch', type=int, default=2,
                     help="Save checkpoints every N epochs")
 parser.add_argument('--evaluate_every_epoch', type=int, default=1,
                     help="Evaluate every X epochs")

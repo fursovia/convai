@@ -1,56 +1,92 @@
 import tensorflow as tf
-import argparse
 import os
 from model.utils import Params
 from model.model_fn import model_fn
 import pickle
 import numpy as np
-from model.input_fn import pred_input_fn
 from model.utils import inference_time
-import pandas as pd
-from model.input_fn import pred_input_fn
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='experiments')
-parser.add_argument('--data_dir', default='data')
+class serving_input_fn:
+    def __init__(self):
+        self.features = tf.placeholder(tf.int64, shape=[None, 140])
+        self.receiver_tensors = {
+           'text': self.features,
+        }
+        self.receiver_tensors_alternatives = None
+
+class pred_agent():
+    def __init__(self, args, raw_utterances, vectorized_responses, embeded_responses):
+        self.args = args
+        self.estimator = self.create_model()
+        self.raw_utterances = raw_utterances
+        self.vectorized_responses = vectorized_responses
+        self.embeded_responses = embeded_responses
+
+        vocabs_path = os.path.join(self.args.data_dir, 'vocabs')
+        uni2idx_path = os.path.join(vocabs_path, 'uni2idx.pkl')
+        bi2idx_path = os.path.join(vocabs_path, 'bi2idx.pkl')
+        char2idx_path = os.path.join(vocabs_path, 'char2idx.pkl')
+
+        self.uni2idx = pickle.load(open(uni2idx_path, 'rb'))
+        self.bi2idx = pickle.load(open(bi2idx_path, 'rb'))
+        self.char2idx = pickle.load(open(char2idx_path, 'rb'))
 
 
-if __name__ == '__main__':
+    def create_model(self):
+        tf.reset_default_graph()
+        tf.logging.set_verbosity(tf.logging.INFO)
 
-    args = parser.parse_args()
+        # ПОДГРУЖАЕМ ПАРАМЕТРЫ
+        json_path = os.path.join(self.args['model_dir'], 'params.json')
+        assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
+        self.params = Params(json_path)
 
-    tf.reset_default_graph()
-    tf.logging.set_verbosity(tf.logging.INFO)
+        # ОПРЕДЕЛЯЕМ МОДЕЛЬ
+        tf.logging.info("Creating the model...")
+        config = tf.estimator.RunConfig(tf_random_seed=230, model_dir=self.args['model_dir'])
 
-    data = pd.read_csv(os.path.join(args.data_dir, 'initial/full.csv'))
-    data2 = pd.read_csv(os.path.join(args.data_dir, 'raw_df.csv'))
-    uts2 = data2['reply'].values
-    all_utts = data['reply'].values
-    unique_utts, indexes = np.unique(all_utts, return_index=True)
-    raw_utts = uts2[indexes]
+        estimator = tf.estimator.Estimator(model_fn, params=self.params, config=config)
+        return estimator
 
-    # ПОДГРУЖАЕМ ПАРАМЕТРЫ
-    json_path = os.path.join(args.model_dir, 'params.json')
-    assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
-    params = Params(json_path)
+    def create_predictor(self):
+        self.predictor = tf.contrib.predictor.from_estimator(
+            self.estimator,
+            serving_input_fn
+        )
 
-    # ОПРЕДЕЛЯЕМ МОДЕЛЬ
-    tf.logging.info("Creating the model...")
-    config = tf.estimator.RunConfig(tf_random_seed=230, model_dir=args.model_dir)
+    def choose_from_knn(self, q_embeddings):
+        _, indexes = None  # knn(q_embeddings)
+        chosen_vectorized_elements = self.vectorized_responses[indexes]
+        chosen_raw_elemenst = self.raw_utterances[indexes]
 
-    estimator = tf.estimator.Estimator(model_fn, params=params, config=config)
+        return chosen_vectorized_elements, chosen_raw_elemenst
 
+    def predict(self, super_dict):
+        vocabs = [self.uni2idx, self.bi2idx, self.char2idx]
 
-    data_to_predict = inference_time(DICT_FROM_MISHA, unique_utts)  # dataframe
+        data_to_predict_knn = inference_time(super_dict, self.vectorized_responses, vocabs, 1)  # ['q_emb']
 
-    train_predictions = estimator.predict(pred_input_fn(data_to_predict))
+        test_predictions_knn = self.predictor({'text': data_to_predict_knn})
 
-    preds = []
-    for i, p in enumerate(train_predictions):
-        preds.append(p['y_prob'])
+        qemb = []
+        for i, p in enumerate(test_predictions_knn):
+            qemb.append(p['q_emb'])
+        qemb = np.array(qemb, float).reshape(-1, 300)
 
-    preds = np.array(preds, float)
-    max_el = np.argmax(preds)
+        chosen_vects, chosen_raw = self.choose_from_knn(qemb)
 
-    what_to_return = raw_utts[max_el]
+        data_to_predict = inference_time(super_dict, chosen_vects, vocabs)
+
+        test_predictions = self.predictor({'text': data_to_predict})  # ['y_prob']
+
+        preds = []
+        for i, p in enumerate(test_predictions):
+            preds.append(p['y_prob'])
+
+        preds = np.array(preds, float)
+        max_element = np.argmax(preds)
+
+        what_to_return = chosen_raw[max_element]
+
+        return what_to_return

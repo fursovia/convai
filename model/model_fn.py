@@ -9,8 +9,8 @@ def model_fn(features, labels, mode, params):
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
     with tf.variable_scope('model'):
-        logits = build_model(is_training, features, params)
-
+        logits  = build_model(is_training, features, params)
+        # qr_sim, q_emb, r_emb
         print('logits', logits[0].shape, logits[0].shape)
 
     if params.loss_type == 'usual':

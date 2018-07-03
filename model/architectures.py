@@ -5,7 +5,7 @@ from tensorflow.contrib.rnn import GRUCell
 from model.model_utils import compute_embeddings
 from model.attention_module import multihead_attention, layer_prepostprocess
 import tensorflow as tf
-import tensorflow_hub as hub
+# import tensorflow_hub as hub
 
 
 def build_model(is_training, sentences, params):
@@ -21,6 +21,154 @@ def build_model(is_training, sentences, params):
     """
     # def get_elmo(module, key):
     #     return hub.text_embedding_column(key=key, module_spec=module)
+
+    if params.architecture == 'simple':
+        embeds_dict = compute_embeddings(sentences, params)
+        question_u = embeds_dict['unigrams']['question']
+        response_u = embeds_dict['unigrams']['response']
+        personal_info_u = embeds_dict['unigrams']['personal_info']
+
+        return None
+
+
+    if params.architecture == 'smart':
+        def gru_encoder(X):
+            _, words_final_state = tf.nn.dynamic_rnn(cell=GRUCell(256),
+                                                     inputs=X,
+                                                     dtype=tf.float32)
+            return words_final_state
+
+        embeds_dict = compute_embeddings(sentences, params)
+
+        context_u = embeds_dict['unigrams']['context']
+        question_u = embeds_dict['unigrams']['question']
+        response_u = embeds_dict['unigrams']['response']
+        personal_info_u = embeds_dict['unigrams']['personal_info']
+
+        info1 = tf.reshape(personal_info_u[:, :20], [-1, 20, params.embedding_size])
+        info2 = tf.reshape(personal_info_u[:, 20:40], [-1, 20, params.embedding_size])
+        info3 = tf.reshape(personal_info_u[:, 40:60], [-1, 20, params.embedding_size])
+        info4 = tf.reshape(personal_info_u[:, 60:80], [-1, 20, params.embedding_size])
+        info5 = tf.reshape(personal_info_u[:, 80:100], [-1, 20, params.embedding_size])
+
+        with tf.variable_scope("GRU_encoder"):
+            reply_gru = gru_encoder(response_u)
+
+        with tf.variable_scope("GRU_encoder", reuse=True):
+            question_gru = gru_encoder(question_u)
+
+        with tf.variable_scope("GRU_encoder2"): #, reuse=True):
+            #context_gru = gru_encoder(context_u)
+            context_gru = tf.reduce_sum(context_u, axis=1)
+
+        with tf.variable_scope("GRU_encoder", reuse=True):
+            info_encoder1 = gru_encoder(info1)
+            info_encoder2 = gru_encoder(info2)
+            info_encoder3 = gru_encoder(info3)
+            info_encoder4 = gru_encoder(info4)
+            info_encoder5 = gru_encoder(info5)
+
+        concatenated_info = tf.concat([info_encoder1,
+                                       info_encoder2,
+                                       info_encoder3,
+                                       info_encoder4,
+                                       info_encoder5], axis=1)
+
+        reshaped_info = tf.reshape(concatenated_info, [-1, 5, 256])
+
+        with tf.name_scope("closest_fact"):
+            dot_product = tf.matmul(tf.expand_dims(question_gru, 1), reshaped_info, transpose_b=True)  # [None, 5]
+            dot_product = tf.reshape(dot_product, [-1, 5])
+            max_dot_product = tf.reduce_max(dot_product, axis=1, keepdims=True)  # how close?
+            max_fact_id = tf.argmax(dot_product, axis=1)
+            mask = tf.cast(tf.one_hot(max_fact_id, 5), tf.bool)
+            closest_info = tf.boolean_mask(reshaped_info, mask, axis=0)
+
+        QR_sim = tf.sigmoid(tf.squeeze(tf.matmul(tf.expand_dims(question_gru, 1), tf.expand_dims(reply_gru, -1))))
+
+        concatenated = tf.concat([context_gru,
+                                  question_gru,
+                                  reply_gru,
+                                  closest_info,
+                                  max_dot_product], axis=1)
+
+        with tf.variable_scope('fc_1'):
+            dense1 = tf.layers.dense(concatenated, 512, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_2'):
+            dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_3'):
+            dense3 = tf.layers.dense(dense2, 2)
+
+        return dense3, QR_sim, question_u, reply_gru
+
+
+    if params.architecture == 'smart2':
+        embeds_dict = compute_embeddings(sentences, params)
+
+        context_u = embeds_dict['unigrams']['context']
+        question_u = embeds_dict['unigrams']['question']
+        response_u = embeds_dict['unigrams']['response']
+        personal_info_u = embeds_dict['unigrams']['personal_info']
+
+        info1 = tf.reshape(personal_info_u[:, :20], [-1, 20, params.embedding_size])
+        info2 = tf.reshape(personal_info_u[:, 20:40], [-1, 20, params.embedding_size])
+        info3 = tf.reshape(personal_info_u[:, 40:60], [-1, 20, params.embedding_size])
+        info4 = tf.reshape(personal_info_u[:, 60:80], [-1, 20, params.embedding_size])
+        info5 = tf.reshape(personal_info_u[:, 80:100], [-1, 20, params.embedding_size])
+
+        with tf.variable_scope("GRU_encoder"):
+            reply_gru = tf.reduce_sum(response_u, axis=1)
+
+        with tf.variable_scope("GRU_encoder", reuse=True):
+            question_gru = tf.reduce_sum(question_u, axis=1)
+
+        with tf.variable_scope("GRU_encoder", reuse=True):
+            context_gru = tf.reduce_sum(context_u, axis=1)
+
+        with tf.variable_scope("GRU_encoder", reuse=True):
+            info_encoder1 = tf.reduce_sum(info1, axis=1)
+            info_encoder2 = tf.reduce_sum(info2, axis=1)
+            info_encoder3 = tf.reduce_sum(info3, axis=1)
+            info_encoder4 = tf.reduce_sum(info4, axis=1)
+            info_encoder5 = tf.reduce_sum(info5, axis=1)
+
+        concatenated_info = tf.concat([info_encoder1,
+                                       info_encoder2,
+                                       info_encoder3,
+                                       info_encoder4,
+                                       info_encoder5], axis=1)
+
+        reshaped_info = tf.reshape(concatenated_info, [-1, 5, 300])
+
+        with tf.name_scope("closest_fact"):
+            dot_product = tf.matmul(tf.expand_dims(question_gru, 1), reshaped_info, transpose_b=True)  # [None, 5]
+            dot_product = tf.reshape(dot_product, [-1, 5])
+            max_dot_product = tf.reduce_max(dot_product, axis=1, keepdims=True)  # how close?
+            max_fact_id = tf.argmax(dot_product, axis=1)
+            mask = tf.cast(tf.one_hot(max_fact_id, 5), tf.bool)
+            closest_info = tf.boolean_mask(reshaped_info, mask, axis=0)
+
+        QR_sim = tf.sigmoid(tf.squeeze(tf.matmul(tf.expand_dims(question_gru, 1), tf.expand_dims(reply_gru, -1))))
+
+        concatenated = tf.concat([context_gru,
+                                  question_gru,
+                                  reply_gru,
+                                  closest_info,
+                                  max_dot_product], axis=1)
+
+        with tf.variable_scope('fc_1'):
+            dense1 = tf.layers.dense(concatenated, 512, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_2'):
+            dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_3'):
+            dense3 = tf.layers.dense(dense2, 2)
+
+        return dense3, QR_sim, question_u, reply_gru
+
 
     if params.architecture == 'elmo':
         elmo = hub.Module("https://tfhub.dev/google/elmo/2")  #, trainable=False)
