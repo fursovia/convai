@@ -191,7 +191,6 @@ async def main(loop, connection, get_updates_url, send_message_url):
 
 def get_answer(data):
 
-
     return '¯\_(ツ)_/¯'
 
 
