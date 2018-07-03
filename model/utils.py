@@ -276,29 +276,29 @@ def clean2(text):
     return clean(text, stem=True)
 
 
-def inference_time(dict_from_tg, responses):
-    cont = clean2(dict_from_tg['context'])
-    quest = clean2(dict_from_tg['question'])
-    resp = responses
-    facts = list(map(clean2, dict_from_tg['facts']))
-
-    conts = [cont] * len(resp)
-    quests = [quest] * len(resp)
-    f1 = [facts[0]] * len(resp)
-    f2 = [facts[1]] * len(resp)
-    f3 = [facts[2]] * len(resp)
-    f4 = [facts[3]] * len(resp)
-    f5 = [facts[4]] * len(resp)
-
-    df = pd.DataFrame({'context': conts,
-                       'question': quests,
-                       'reply': resp,
-                       'fact1': f1,
-                       'fact2': f2,
-                       'fact3': f3,
-                       'fact4': f4,
-                       'fact5': f5})
-    return df
+# def inference_time(dict_from_tg, responses):
+#     cont = clean2(dict_from_tg['context'])
+#     quest = clean2(dict_from_tg['question'])
+#     resp = responses
+#     facts = list(map(clean2, dict_from_tg['facts']))
+#
+#     conts = [cont] * len(resp)
+#     quests = [quest] * len(resp)
+#     f1 = [facts[0]] * len(resp)
+#     f2 = [facts[1]] * len(resp)
+#     f3 = [facts[2]] * len(resp)
+#     f4 = [facts[3]] * len(resp)
+#     f5 = [facts[4]] * len(resp)
+#
+#     df = pd.DataFrame({'context': conts,
+#                        'question': quests,
+#                        'reply': resp,
+#                        'fact1': f1,
+#                        'fact2': f2,
+#                        'fact3': f3,
+#                        'fact4': f4,
+#                        'fact5': f5})
+#     return df
 
 
 def inference_time(dict_from_tg, responses, vocabs):
@@ -314,57 +314,39 @@ def inference_time(dict_from_tg, responses, vocabs):
         'seq_chars_maxlen': 100
     }
 
-    def vect_char(x): return vectorize_chars(x, params=vectorizing_params)
-    def vect_wb(x): return vectorize_uni_bi(x, params=vectorizing_params)
+    def vect_char(x): return np.array(vectorize_chars(x, params=vectorizing_params), int).reshape(-1, 100)
+    def vect_wb(x): return np.array(vectorize_uni_bi(x, params=vectorizing_params), int).reshape(-1, 40)
 
-    def vect_char_(x): return vectorize_chars(x, params=vectorizing_params, trunc='pre')
-    def vect_wb_(x): return vectorize_uni_bi(x, params=vectorizing_params, trunc='pre')
+    def vect_char_(x): return np.array(vectorize_chars(x, params=vectorizing_params, trunc='pre'), int).reshape(-1, 100)
+    def vect_wb_(x): return np.array(vectorize_uni_bi(x, params=vectorizing_params, trunc='pre'), int).reshape(-1, 40)
 
-    cont = clean2(dict_from_tg['context'])
+    cont = clean2(' '.join(dict_from_tg['context']))
     quest = clean2(dict_from_tg['question'])
     resp = responses
     facts = list(map(clean2, dict_from_tg['facts']))
 
-    conts = [cont] * len(resp)
-    quests = [quest] * len(resp)
-    f1 = [facts[0]] * len(resp)
-    f2 = [facts[1]] * len(resp)
-    f3 = [facts[2]] * len(resp)
-    f4 = [facts[3]] * len(resp)
-    f5 = [facts[4]] * len(resp)
+    f1 = facts[0]
+    f2 = facts[1]
+    f3 = facts[2]
+    f4 = facts[3]
+    f5 = facts[4]
 
-    with Pool(5) as p:
-        print('1')
-        c_res = p.map(vect_char_,)
-        wb_res = p.map(vect_wb_, )
-    with Pool(5) as p:
-        print('2')
-        c_res1 = p.map(vect_char, )
-        wb_res1 = p.map(vect_wb, )
-    with Pool(5) as p:
-        print('3')
-        c_res2 = p.map(vect_char, )
-        wb_res2 = p.map(vect_wb, )
-    with Pool(5) as p:
-        print('4')
-        c_res3 = p.map(vect_char, )
-        wb_res3 = p.map(vect_wb, )
-    with Pool(5) as p:
-        print('5')
-        c_res4 = p.map(vect_char, )
-        wb_res4 = p.map(vect_wb, )
-    with Pool(5) as p:
-        print('6')
-        c_res5 = p.map(vect_char, )
-        wb_res5 = p.map(vect_wb, )
-    with Pool(5) as p:
-        print('7')
-        c_res6 = p.map(vect_char, )
-        wb_res6 = p.map(vect_wb, )
-    with Pool(5) as p:
-        print('8')
-        c_res7 = p.map(vect_char, )
-        wb_res7 = p.map(vect_wb, )
+    wb_res = np.repeat(vect_wb_(cont), resp.shape[0], axis=0)
+    c_res = np.repeat(vect_char_(cont), resp.shape[0], axis=0)
+    wb_res1 = np.repeat(vect_wb(quest), resp.shape[0], axis=0)
+    c_res1 = np.repeat(vect_char(quest), resp.shape[0], axis=0)
+    wb_res2 = resp[:, :40]
+    c_res2 = resp[:, 40:140]
+    wb_res3 = np.repeat(vect_wb(f1), resp.shape[0], axis=0)
+    c_res3 = np.repeat(vect_char(f1), resp.shape[0], axis=0)
+    wb_res4 = np.repeat(vect_wb(f2), resp.shape[0], axis=0)
+    c_res4 = np.repeat(vect_char(f2), resp.shape[0], axis=0)
+    wb_res5 = np.repeat(vect_wb(f3), resp.shape[0], axis=0)
+    c_res5 = np.repeat(vect_char(f3), resp.shape[0], axis=0)
+    wb_res6 = np.repeat(vect_wb(f4), resp.shape[0], axis=0)
+    c_res6 = np.repeat(vect_char(f4), resp.shape[0], axis=0)
+    wb_res7 = np.repeat(vect_wb(f5), resp.shape[0], axis=0)
+    c_res7 = np.repeat(vect_char(f5), resp.shape[0], axis=0)
 
     data = np.hstack((wb_res, c_res,
                       wb_res1, c_res1,
@@ -374,3 +356,5 @@ def inference_time(dict_from_tg, responses, vocabs):
                       wb_res5, c_res5,
                       wb_res6, c_res6,
                       wb_res7, c_res7)).reshape(-1, 8, 140)
+
+    return data

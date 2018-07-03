@@ -24,42 +24,61 @@ class serving_input_fn:
         }
         self.receiver_tensors_alternatives = None
 
-
-if __name__ == '__main__':
-
-    args = parser.parse_args()
-
-    tf.reset_default_graph()
-    tf.logging.set_verbosity(tf.logging.INFO)
-
-    data = pd.read_csv(os.path.join(args.data_dir, 'initial/full.csv'))
-    data2 = pd.read_csv(os.path.join(args.data_dir, 'raw_df.csv'))
-    uts2 = data2['reply'].values
-    all_utts = data['reply'].values
-    unique_utts, indexes = np.unique(all_utts, return_index=True)
-    raw_utts = uts2[indexes]
-
-    # ПОДГРУЖАЕМ ПАРАМЕТРЫ
-    json_path = os.path.join(args.model_dir, 'params.json')
-    assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
-    params = Params(json_path)
-
-    # ОПРЕДЕЛЯЕМ МОДЕЛЬ
-    tf.logging.info("Creating the model...")
-    config = tf.estimator.RunConfig(tf_random_seed=230, model_dir=args.model_dir)
-
-    estimator = tf.estimator.Estimator(model_fn, params=params, config=config)
+class pred_agent():
+    def __init__(self, args, super_dict, raw_utterances, vectorized_responses):
+        self.args = args
+        self.estimator = self.create_model()
+        self.super_dict = super_dict
+        self.raw_utterances = raw_utterances
+        self.vectorized_responses = vectorized_responses
 
 
-    # data_to_predict = inference_time(DICT_FROM_MISHA, unique_utts)  # dataframe
+    def create_model(self):
+        tf.reset_default_graph()
+        tf.logging.set_verbosity(tf.logging.INFO)
 
-    train_predictions = estimator.predict(pred_input_fn(data_to_predict))
+        # ПОДГРУЖАЕМ ПАРАМЕТРЫ
+        json_path = os.path.join(self.args['model_dir'], 'params.json')
+        assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
+        self.params = Params(json_path)
 
-    preds = []
-    for i, p in enumerate(train_predictions):
-        preds.append(p['y_prob'])
+        # ОПРЕДЕЛЯЕМ МОДЕЛЬ
+        tf.logging.info("Creating the model...")
+        config = tf.estimator.RunConfig(tf_random_seed=230, model_dir=self.args['model_dir'])
 
-    preds = np.array(preds, float)
-    max_el = np.argmax(preds)
+        estimator = tf.estimator.Estimator(model_fn, params=self.params, config=config)
+        return estimator
 
-    what_to_return = raw_utts[max_el]
+    def create_predictor(self):
+        self.predictor = tf.contrib.predictor.from_estimator(
+            self.estimator,
+            serving_input_fn
+        )
+
+    def predict(self):
+
+        vocabs_path = os.path.join(self.args.data_dir, 'vocabs')
+        uni2idx_path = os.path.join(vocabs_path, 'uni2idx.pkl')
+        bi2idx_path = os.path.join(vocabs_path, 'bi2idx.pkl')
+        char2idx_path = os.path.join(vocabs_path, 'char2idx.pkl')
+
+        uni2idx = pickle.load(open(uni2idx_path, 'rb'))
+        bi2idx = pickle.load(open(bi2idx_path, 'rb'))
+        char2idx = pickle.load(open(char2idx_path, 'rb'))
+
+        vocabs = [uni2idx, bi2idx, char2idx]
+
+        data_to_predict = inference_time(self.super_dict, self.vectorized_responses, vocabs)
+
+        test_predictions = self.predictor({'text': data_to_predict})  #['y_prob']
+
+        preds = []
+        for i, p in enumerate(test_predictions):
+            preds.append(p['y_prob'])
+
+        preds = np.array(preds, float)
+        max_element = np.argmax(preds)
+
+        what_to_return = self.raw_utterances[max_element]
+
+        return what_to_return
