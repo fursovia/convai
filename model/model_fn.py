@@ -19,7 +19,9 @@ def model_fn(features, labels, mode, params):
 
         if mode == tf.estimator.ModeKeys.PREDICT:
             predictions = {'y_prob': preds[:, 1],
-                           'y_pred': tf.argmax(preds, axis=1)}
+                           'y_pred': tf.argmax(preds, axis=1),
+                           'hist_emb': logits[0],
+                           'resp_emb': logits[1]}
 
             return tf.estimator.EstimatorSpec(mode=mode,
                                               predictions=predictions,
