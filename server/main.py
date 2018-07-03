@@ -5,6 +5,14 @@ import aiohttp
 import os
 import json
 import datetime
+from tg_prediction import pred_agent
+import argparse
+import os
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--model_dir', default='experiments')
+parser.add_argument('--data_dir', default='data')
+
 
 def check_db(connection):
     return connection.execute(
@@ -182,10 +190,14 @@ async def main(loop, connection, get_updates_url, send_message_url):
 
 
 def get_answer(data):
+
+
     return '¯\_(ツ)_/¯'
 
 
 if __name__ == '__main__':
+    args = parser.parse_args()
+
     bot_token = os.environ['BOT_TOKEN']
     connection = sqlite3.connect('loopai.db')
     if not check_db(connection):

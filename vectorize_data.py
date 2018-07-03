@@ -74,37 +74,37 @@ if __name__ == '__main__':
     def vect_char_(x): return vectorize_chars(x, params=vectorizing_params, trunc='pre')
     def vect_wb_(x): return vectorize_uni_bi(x, params=vectorizing_params, trunc='pre')
 
-    with Pool(5) as p:
+    with Pool(15) as p:
         print('1')
-        c_res = p.map(vect_char_, df_cleaned_char['context'])
         wb_res = p.map(vect_wb_, df_cleaned['context'])
-    with Pool(5) as p:
+        c_res = np.zeros((len(wb_res), 100), int) # p.map(vect_char_, df_cleaned_char['context'])
+    with Pool(15) as p:
         print('2')
-        c_res1 = p.map(vect_char, df_cleaned_char['question'])
+        c_res1 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['question'])
         wb_res1 = p.map(vect_wb, df_cleaned['question'])
-    with Pool(5) as p:
+    with Pool(15) as p:
         print('3')
-        c_res2 = p.map(vect_char, df_cleaned_char['reply'])
+        c_res2 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['reply'])
         wb_res2 = p.map(vect_wb, df_cleaned['reply'])
-    with Pool(5) as p:
+    with Pool(15) as p:
         print('4')
-        c_res3 = p.map(vect_char, df_cleaned_char['fact1'])
+        c_res3 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['fact1'])
         wb_res3 = p.map(vect_wb, df_cleaned['fact1'])
-    with Pool(5) as p:
+    with Pool(15) as p:
         print('5')
-        c_res4 = p.map(vect_char, df_cleaned_char['fact2'])
+        c_res4 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['fact2'])
         wb_res4 = p.map(vect_wb, df_cleaned['fact2'])
-    with Pool(5) as p:
+    with Pool(15) as p:
         print('6')
-        c_res5 = p.map(vect_char, df_cleaned_char['fact3'])
+        c_res5 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['fact3'])
         wb_res5 = p.map(vect_wb, df_cleaned['fact3'])
-    with Pool(5) as p:
+    with Pool(15) as p:
         print('7')
-        c_res6 = p.map(vect_char, df_cleaned_char['fact4'])
+        c_res6 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['fact4'])
         wb_res6 = p.map(vect_wb, df_cleaned['fact4'])
-    with Pool(5) as p:
+    with Pool(15) as p:
         print('8')
-        c_res7 = p.map(vect_char, df_cleaned_char['fact5'])
+        c_res7 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['fact5'])
         wb_res7 = p.map(vect_wb, df_cleaned['fact5'])
 
     print('saving...')
@@ -117,7 +117,7 @@ if __name__ == '__main__':
                       wb_res6, c_res6,
                       wb_res7, c_res7)).reshape(-1, 8, 140)
 
-    responses = np.hstack((wb_res2, c_res2)).reshape(-1, 8, 140)
+    responses = np.hstack((wb_res2, c_res2)).reshape(-1, 140)
 
     print('data shape = {}'.format(data.shape))
 

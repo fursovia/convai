@@ -23,6 +23,15 @@ class pred_agent():
         self.vectorized_responses = vectorized_responses
         self.embeded_responses = embeded_responses
 
+        vocabs_path = os.path.join(self.args.data_dir, 'vocabs')
+        uni2idx_path = os.path.join(vocabs_path, 'uni2idx.pkl')
+        bi2idx_path = os.path.join(vocabs_path, 'bi2idx.pkl')
+        char2idx_path = os.path.join(vocabs_path, 'char2idx.pkl')
+
+        self.uni2idx = pickle.load(open(uni2idx_path, 'rb'))
+        self.bi2idx = pickle.load(open(bi2idx_path, 'rb'))
+        self.char2idx = pickle.load(open(char2idx_path, 'rb'))
+
 
     def create_model(self):
         tf.reset_default_graph()
@@ -54,19 +63,10 @@ class pred_agent():
         return chosen_vectorized_elements, chosen_raw_elemenst
 
     def predict(self, super_dict):
-
-        vocabs_path = os.path.join(self.args.data_dir, 'vocabs')
-        uni2idx_path = os.path.join(vocabs_path, 'uni2idx.pkl')
-        bi2idx_path = os.path.join(vocabs_path, 'bi2idx.pkl')
-        char2idx_path = os.path.join(vocabs_path, 'char2idx.pkl')
-
-        uni2idx = pickle.load(open(uni2idx_path, 'rb'))
-        bi2idx = pickle.load(open(bi2idx_path, 'rb'))
-        char2idx = pickle.load(open(char2idx_path, 'rb'))
-
-        vocabs = [uni2idx, bi2idx, char2idx]
+        vocabs = [self.uni2idx, self.bi2idx, self.char2idx]
 
         data_to_predict_knn = inference_time(super_dict, self.vectorized_responses, vocabs, 1)  # ['q_emb']
+
         test_predictions_knn = self.predictor({'text': data_to_predict_knn})
 
         qemb = []
