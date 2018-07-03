@@ -8,7 +8,7 @@ def model_fn(features, labels, mode, params):
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
     with tf.variable_scope('model'):
-        logits = build_model(is_training, features, params)
+        logits, qr_sim = build_model(is_training, features, params)
 
     preds = tf.nn.softmax(logits)
 
@@ -24,9 +24,8 @@ def model_fn(features, labels, mode, params):
 
     one_hot_labels = tf.one_hot(labels, 2)
 
-    loss = tf.reduce_mean(
-        tf.losses.softmax_cross_entropy(onehot_labels=one_hot_labels, logits=logits)
-    )
+    loss = 0.7 * tf.reduce_mean(tf.losses.softmax_cross_entropy(onehot_labels=one_hot_labels, logits=logits)) + \
+           0.3 * tf.reduce_mean(tf.losses.sigmoid_cross_entropy(multi_class_labels=labels, logits=qr_sim))
 
     if mode == tf.estimator.ModeKeys.EVAL:
         acc, acc_op = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(preds, axis=1), name='acc')

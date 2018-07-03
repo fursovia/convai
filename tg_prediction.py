@@ -16,6 +16,15 @@ parser.add_argument('--model_dir', default='experiments')
 parser.add_argument('--data_dir', default='data')
 
 
+class serving_input_fn:
+    def __init__(self):
+        self.features = tf.placeholder(tf.int64, shape=[None, 140])
+        self.receiver_tensors = {
+           'text': self.features,
+        }
+        self.receiver_tensors_alternatives = None
+
+
 if __name__ == '__main__':
 
     args = parser.parse_args()
@@ -42,7 +51,7 @@ if __name__ == '__main__':
     estimator = tf.estimator.Estimator(model_fn, params=params, config=config)
 
 
-    data_to_predict = inference_time(DICT_FROM_MISHA, unique_utts)  # dataframe
+    # data_to_predict = inference_time(DICT_FROM_MISHA, unique_utts)  # dataframe
 
     train_predictions = estimator.predict(pred_input_fn(data_to_predict))
 

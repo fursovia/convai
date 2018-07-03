@@ -35,7 +35,7 @@ def compute_embeddings(sentences, params):
                                                  shape=[(params.uni_size + 1), params.embedding_size],
                                                  initializer=weights_initializer,
                                                  trainable=True,
-                                                 dtype=tf.float64)
+                                                 dtype=tf.float32)
 
             cont_u = tf.nn.embedding_lookup(embedding_matrix_u, cont_u)
             quest_u = tf.nn.embedding_lookup(embedding_matrix_u, quest_u)
@@ -56,7 +56,7 @@ def compute_embeddings(sentences, params):
                                                  shape=[(params.uni_size + 1), params.embedding_size],
                                                  initializer=weights_initializer,
                                                  trainable=True,
-                                                 dtype=tf.float64)
+                                                 dtype=tf.float32)
 
             cont_u = tf.nn.embedding_lookup(embedding_matrix_u, cont_u)
             quest_u = tf.nn.embedding_lookup(embedding_matrix_u, quest_u)
@@ -68,7 +68,7 @@ def compute_embeddings(sentences, params):
                                                  shape=[(params.bi_size + 1), params.embedding_size],
                                                  initializer=weights_initializer,
                                                  trainable=True,
-                                                 dtype=tf.float64)
+                                                 dtype=tf.float32)
 
             cont_b = tf.nn.embedding_lookup(embedding_matrix_b, cont_b)
             quest_b = tf.nn.embedding_lookup(embedding_matrix_b, quest_b)
@@ -95,7 +95,7 @@ def compute_embeddings(sentences, params):
                                                  shape=[(params.uni_size + 1), params.embedding_size],
                                                  initializer=weights_initializer,
                                                  trainable=True,
-                                                 dtype=tf.float64)
+                                                 dtype=tf.float32)
 
             cont_u = tf.nn.embedding_lookup(embedding_matrix_u, cont_u)
             quest_u = tf.nn.embedding_lookup(embedding_matrix_u, quest_u)
@@ -107,7 +107,7 @@ def compute_embeddings(sentences, params):
                                                  shape=[(params.bi_size + 1), params.embedding_size],
                                                  initializer=weights_initializer,
                                                  trainable=True,
-                                                 dtype=tf.float64)
+                                                 dtype=tf.float32)
 
             cont_b = tf.nn.embedding_lookup(embedding_matrix_b, cont_b)
             quest_b = tf.nn.embedding_lookup(embedding_matrix_b, quest_b)
@@ -119,7 +119,7 @@ def compute_embeddings(sentences, params):
                                                  shape=[(params.char_size + 1), params.embedding_size],
                                                  initializer=weights_initializer,
                                                  trainable=True,
-                                                 dtype=tf.float64)
+                                                 dtype=tf.float32)
 
             cont_c = tf.nn.embedding_lookup(embedding_matrix_c, cont_c)
             quest_c = tf.nn.embedding_lookup(embedding_matrix_c, quest_c)
@@ -152,7 +152,7 @@ def compute_embeddings(sentences, params):
                                                  shape=[(params.char_size + 1), params.embedding_size],
                                                  initializer=weights_initializer,
                                                  trainable=True,
-                                                 dtype=tf.float64)
+                                                 dtype=tf.float32)
 
             cont_c = tf.nn.embedding_lookup(embedding_matrix_c, cont_c)
             quest_c = tf.nn.embedding_lookup(embedding_matrix_c, quest_c)

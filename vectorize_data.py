@@ -20,8 +20,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    table_path = os.path.join(args.data_dir, 'cleaned_df.csv')
-    table_path2 = os.path.join(args.data_dir, 'cleaned_char_df.csv')
+    table_path = os.path.join(args.data_dir, 'labeled_df.csv')
+    table_path2 = os.path.join(args.data_dir, 'labeled_char_df.csv')
 
     assert os.path.isfile(table_path) and os.path.isfile(table_path2), 'No files found at {}'.format(table_path)
 
@@ -71,11 +71,13 @@ if __name__ == '__main__':
     def vect_char(x): return vectorize_chars(x, params=vectorizing_params)
     def vect_wb(x): return vectorize_uni_bi(x, params=vectorizing_params)
 
+    def vect_char_(x): return vectorize_chars(x, params=vectorizing_params, trunc='pre')
+    def vect_wb_(x): return vectorize_uni_bi(x, params=vectorizing_params, trunc='pre')
 
     with Pool(5) as p:
         print('1')
-        c_res = p.map(vect_char, df_cleaned_char['context'])
-        wb_res = p.map(vect_wb, df_cleaned['context'])
+        c_res = p.map(vect_char_, df_cleaned_char['context'])
+        wb_res = p.map(vect_wb_, df_cleaned['context'])
     with Pool(5) as p:
         print('2')
         c_res1 = p.map(vect_char, df_cleaned_char['question'])

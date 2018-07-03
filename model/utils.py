@@ -11,6 +11,7 @@ from nltk.stem import SnowballStemmer
 from nltk.corpus import stopwords
 from nltk import ngrams
 from keras.preprocessing.sequence import pad_sequences
+from multiprocessing import Pool
 
 
 snowball_stemmer = SnowballStemmer("english")
@@ -272,7 +273,7 @@ def vectorize_uni_bi(text, params, trunc='post'):
 
 
 def clean2(text):
-    return clean(text, stem=False)
+    return clean(text, stem=True)
 
 
 def inference_time(dict_from_tg, responses):
@@ -298,3 +299,78 @@ def inference_time(dict_from_tg, responses):
                        'fact4': f4,
                        'fact5': f5})
     return df
+
+
+def inference_time(dict_from_tg, responses, vocabs):
+
+    uni2idx, bi2idx, char2idx = vocabs
+
+    vectorizing_params = {
+        'uni2idx': uni2idx,
+        'bi2idx': bi2idx,
+        'char2idx': char2idx,
+        'seq_words_maxlen': 20,
+        'seq_bis_maxlen': 20,
+        'seq_chars_maxlen': 100
+    }
+
+    def vect_char(x): return vectorize_chars(x, params=vectorizing_params)
+    def vect_wb(x): return vectorize_uni_bi(x, params=vectorizing_params)
+
+    def vect_char_(x): return vectorize_chars(x, params=vectorizing_params, trunc='pre')
+    def vect_wb_(x): return vectorize_uni_bi(x, params=vectorizing_params, trunc='pre')
+
+    cont = clean2(dict_from_tg['context'])
+    quest = clean2(dict_from_tg['question'])
+    resp = responses
+    facts = list(map(clean2, dict_from_tg['facts']))
+
+    conts = [cont] * len(resp)
+    quests = [quest] * len(resp)
+    f1 = [facts[0]] * len(resp)
+    f2 = [facts[1]] * len(resp)
+    f3 = [facts[2]] * len(resp)
+    f4 = [facts[3]] * len(resp)
+    f5 = [facts[4]] * len(resp)
+
+    with Pool(5) as p:
+        print('1')
+        c_res = p.map(vect_char_,)
+        wb_res = p.map(vect_wb_, )
+    with Pool(5) as p:
+        print('2')
+        c_res1 = p.map(vect_char, )
+        wb_res1 = p.map(vect_wb, )
+    with Pool(5) as p:
+        print('3')
+        c_res2 = p.map(vect_char, )
+        wb_res2 = p.map(vect_wb, )
+    with Pool(5) as p:
+        print('4')
+        c_res3 = p.map(vect_char, )
+        wb_res3 = p.map(vect_wb, )
+    with Pool(5) as p:
+        print('5')
+        c_res4 = p.map(vect_char, )
+        wb_res4 = p.map(vect_wb, )
+    with Pool(5) as p:
+        print('6')
+        c_res5 = p.map(vect_char, )
+        wb_res5 = p.map(vect_wb, )
+    with Pool(5) as p:
+        print('7')
+        c_res6 = p.map(vect_char, )
+        wb_res6 = p.map(vect_wb, )
+    with Pool(5) as p:
+        print('8')
+        c_res7 = p.map(vect_char, )
+        wb_res7 = p.map(vect_wb, )
+
+    data = np.hstack((wb_res, c_res,
+                      wb_res1, c_res1,
+                      wb_res2, c_res2,
+                      wb_res3, c_res3,
+                      wb_res4, c_res4,
+                      wb_res5, c_res5,
+                      wb_res6, c_res6,
+                      wb_res7, c_res7)).reshape(-1, 8, 140)
