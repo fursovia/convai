@@ -71,8 +71,8 @@ def build_model(is_training, sentences, params):
         print('sentences', sentences['fact1'].shape)
         print('question', sentences['question'].shape, sentences['context'].shape)
 
-        # personal_info = tf.concat([sentences['fact1'], sentences['fact2'], sentences['fact3'], sentences['fact4']],
-        #                           axis=-1)
+        personal_info = tf.concat([sentences['fact1'], sentences['fact2'], sentences['fact3'], sentences['fact4']],
+                                  axis=-1)
         history = tf.concat([sentences['question'], sentences['context']], axis=-1)
         # print('personal_info', personal_info.shape)
         # print('history', history.shape)
@@ -147,6 +147,10 @@ def build_model(is_training, sentences, params):
         print('history', history.shape)
         print('response_u', response_u.shape)
 
+        history_new = elmo(history_new)
+        response = elmo(reply_emb)
+        print('history_new', history_new.shape)
+        print('response', response.shape)
 
         concatenated = tf.concat([response_u, history, personal_info_u], axis=1)
         print('concatenated', concatenated.shape)
