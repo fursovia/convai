@@ -9,9 +9,9 @@ from model.utils import Params
 from datetime import datetime
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='experiments',
+parser.add_argument('--model_dir', default='exp',
                     help="Experiment directory containing params.json")
-parser.add_argument('--data_dir', default='data_convai',
+parser.add_argument('--data_dir', default='/data/i.anokhin/convai/data_convai',
                     help="Directory containing the dataset")
 # parser.add_argument('--final_train', default='N',
 #                     help="Whether to train on a whole dataset")

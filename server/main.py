@@ -8,6 +8,7 @@ import datetime
 from tg_prediction import pred_agent
 import argparse
 import os
+from knn import KNeighborsClassifier
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='experiments')

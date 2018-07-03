@@ -11,8 +11,8 @@ import numpy as np
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='experiments')
-parser.add_argument('--data_dir', default='/data/i.fursov/data')
+parser.add_argument('--model_dir', default='exp')
+parser.add_argument('--data_dir', default='/data/i.anokhin/convai/data_convai')
 
 
 if __name__ == '__main__':
@@ -33,10 +33,10 @@ if __name__ == '__main__':
 
     # ПОЛУЧАЕМ ВСЕ ЭМБЕДИНГИ ИЗ ТРЕЙНА
     tf.logging.info("Predicting train data...")
-    train_predictions = estimator.predict(lambda: input_fn(args.data_dir, params, 'full', False))
+    train_predictions = estimator.predict(lambda: input_fn(args.data_dir, params, 'eval', False))
 
     train_embeddings = np.empty((0, 300))
-    for i, p in enumerate(train_predictions):
+    for p in train_predictions:
         train_embeddings = np.append(train_embeddings, p['resp_emb'].reshape(-1, 300), axis=0)
 
     train_emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
