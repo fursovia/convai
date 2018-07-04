@@ -320,7 +320,9 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     def vect_char_(x): return np.array(vectorize_chars(x, params=vectorizing_params, trunc='pre'), int).reshape(-1, 100)
     def vect_wb_(x): return np.array(vectorize_uni_bi(x, params=vectorizing_params, trunc='pre'), int).reshape(-1, 40)
 
-    cont = clean2(' '.join(dict_from_tg['context']))
+    old_cont = dict_from_tg['context']
+    cont = [i[0] for i in old_cont]
+    cont = clean2(' '.join(cont))
     quest = clean2(dict_from_tg['question'])
     resp = responses
     facts = list(map(clean2, dict_from_tg['facts']))
