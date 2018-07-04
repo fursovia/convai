@@ -3,9 +3,10 @@ from model.attention_layer import attention
 from tensorflow.contrib.rnn import BasicLSTMCell
 from tensorflow.contrib.rnn import GRUCell
 from model.model_utils import compute_embeddings
-from model.attention_module import multihead_attention, layer_prepostprocess
+from model.attention_module import multihead_attention, layer_prepostprocess, shape_list
 import tensorflow as tf
-# import tensorflow_hub as hub
+import tensorflow_hub as hub
+
 
 
 def build_model(is_training, sentences, params):
@@ -169,7 +170,6 @@ def build_model(is_training, sentences, params):
 
         return dense3, QR_sim, question_u, reply_gru
 
-
     if params.architecture == 'elmo':
         elmo = hub.Module("https://tfhub.dev/google/elmo/2")  #, trainable=False)
         c = elmo(sentences['context'], signature='default', as_dict=True)['default']
@@ -206,6 +206,76 @@ def build_model(is_training, sentences, params):
 
         return dense3
 
+    if params.architecture == 'elmo_0.1':
+        elmo = hub.Module("https://tfhub.dev/google/elmo/2", trainable=False)
+        # history_emb = tf.expand_dims(elmo(history),1)
+        # history = [sentences['quest'], sentences['cont']]
+
+        with tf.variable_scope("model"):
+            reply_emb = elmo(sentences['resp'])
+        with tf.variable_scope("model", reuse=True):
+            quest_emb = elmo(sentences['quest'])
+        with tf.variable_scope("model", reuse=True):
+            cont_emb = elmo(sentences['cont'])
+        with tf.variable_scope("model", reuse=True):
+            fact1_emb = elmo(sentences['fact1'])
+        with tf.variable_scope("model", reuse=True):
+            fact2_emb = elmo(sentences['fact2'])
+        with tf.variable_scope("model", reuse=True):
+            fact3_emb = elmo(sentences['fact3'])
+        with tf.variable_scope("model", reuse=True):
+            fact4_emb = elmo(sentences['fact4'])
+        with tf.variable_scope("model", reuse=True):
+            fact5_emb = elmo(sentences['fact5'])
+
+        print('fact1_emb', fact1_emb.shape)
+        # personal_info_emb = tf.concat([tf.expand_dims(fact1_emb, 1), tf.expand_dims(fact2_emb, 1),
+        #                                tf.expand_dims(fact3_emb, 1),
+        #                                tf.expand_dims(fact4_emb, 1), tf.expand_dims(fact5_emb, 1)], axis=1)
+        history_emb = tf.expand_dims(quest_emb, 1)
+        # print('personal_info_emb', personal_info_emb.shape)
+        print('history_emb', history_emb.shape)
+        print('reply_emb', reply_emb.shape)
+
+        # attention history on PI
+        # with tf.variable_scope("self_attention"):
+        #     # d_model = history_emb.shape[-1]
+        #     # print('dim', d_model, personal_info_emb[-1])
+        #     d_model = 1024
+        #     y = multihead_attention(history_emb,
+        #                             personal_info_emb,
+        #                             d_model,
+        #                             d_model,
+        #                             d_model,
+        #                             4,
+        #                             name="multihead_attention_history_on_pi")
+        #     history_emb = layer_prepostprocess(history_emb, y, 'a', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+
+
+
+        #temp
+        quest_emb = tf.reduce_sum(history_emb, axis=1)
+        print('quest_emb', quest_emb.shape)
+
+        with tf.variable_scope('fc_3'):
+            reply_emb = tf.layers.dense(reply_emb, 512)
+            quest_emb = tf.layers.dense(quest_emb, 512)
+
+        return quest_emb, reply_emb
+
+
+
+        # reply_emb = elmo(sentences['resp'])
+        # quest_emb = elmo(sentences['quest'])
+
+        # concat = tf.concat([sentences['quest'], sentences['resp']], axis=0)
+        # concat = elmo(concat)
+        # bs = shape_list(sentences['quest'])[0]
+        # reply_emb = concat[:bs]
+        # quest_emb = concat[bs:]
+
+
+
     if params.architecture == 'first':
         # embeds_dict = compute_embeddings(sentences, params)
         #
@@ -216,12 +286,12 @@ def build_model(is_training, sentences, params):
 
         # 'context', 'question', 'reply', 'fact1', 'fact2', 'fact3', 'fact4',
         # 'fact5'
-        print('sentences', sentences['fact1'].shape)
-        print('question', sentences['question'].shape, sentences['context'].shape)
+        # print('sentences', sentences['fact1'].shape)
+        # print('question', sentences['question'].shape, sentences['context'].shape)
 
-        personal_info = tf.concat([sentences['fact1'], sentences['fact2'], sentences['fact3'], sentences['fact4']],
-                                  axis=-1)
-        history = tf.concat([sentences['question'], sentences['context']], axis=-1)
+        # personal_info = tf.concat([sentences['fact1'], sentences['fact2'], sentences['fact3'], sentences['fact4']],
+        #                           axis=-1)
+        # history = tf.concat([sentences['question'], sentences['context']], axis=-1)
         # print('personal_info', personal_info.shape)
         # print('history', history.shape)
 
@@ -229,15 +299,16 @@ def build_model(is_training, sentences, params):
         # 'fact5'
 
         elmo = hub.Module("https://tfhub.dev/google/elmo/2", trainable=False)
-        history_emb = tf.expand_dims(elmo(history),1)
+        # history_emb = tf.expand_dims(elmo(history),1)
+
         reply_emb = elmo(sentences['reply'])
-        fact1 = tf.expand_dims(elmo(sentences['fact1']),1)
-        fact2 = tf.expand_dims(elmo(sentences['fact2']),1)
-        fact3 = tf.expand_dims(elmo(sentences['fact3']),1)
-        fact4 = tf.expand_dims(elmo(sentences['fact4']),1)
-        fact5 = tf.expand_dims(elmo(sentences['fact5']),1)
-        print('fact1', fact1.shape)
-        personal_info_emb = tf.concat([fact1,fact2,fact3,fact4,fact5], axis=1)
+        # fact1 = tf.expand_dims(elmo(sentences['fact1']),1)
+        # fact2 = tf.expand_dims(elmo(sentences['fact2']),1)
+        # fact3 = tf.expand_dims(elmo(sentences['fact3']),1)
+        # fact4 = tf.expand_dims(elmo(sentences['fact4']),1)
+        # fact5 = tf.expand_dims(elmo(sentences['fact5']),1)
+        # print('fact1', fact1.shape)
+        # personal_info_emb = tf.concat([fact1,fact2,fact3,fact4,fact5], axis=1)
 
         # elmo = hub.Module("https://tfhub.dev/google/elmo/2", trainable=False)
         # personal_info_emb = elmo(
