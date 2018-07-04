@@ -381,4 +381,4 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     # dict_to_return['resp'] = data[:,2]
     # dict_to_return['facts'] = data[:,2:]
 
-    return dict_to_return
+    return data
