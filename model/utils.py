@@ -325,7 +325,16 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     cont = clean2(' '.join(cont))
     quest = clean2(dict_from_tg['question'])
     resp = responses
-    facts = list(map(clean2, dict_from_tg['facts']))
+
+    fff = dict_from_tg['facts']
+    facts = []
+    for i in range(5):
+        try:
+            facts.append(fff[i])
+        except:
+            facts.append('')
+
+    facts = list(map(clean2, facts))
 
     f1 = facts[0]
     f2 = facts[1]
