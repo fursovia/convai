@@ -2,7 +2,16 @@
 
 import nmslib
 import numpy as np
-from ml_utils import pklgz
+import pickle
+import gzip
+
+def dump(obj, fname):
+    with gzip.open(fname, 'wb') as f:
+        pickle.dump(obj, f, 4)
+
+def load(fname):
+    with gzip.open(fname, 'rb') as f:
+        return pickle.load(f)
 
 
 class NearestNeighbors(object):
