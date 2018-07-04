@@ -168,7 +168,7 @@ async def wait_and_push(connection, chat_id, timestamp, send_message_url):
                and created_at > ?
         ''',
         (chat_id, timestamp)
-    ).fetchone()[0] > 0:
+    ).fetchone()[0] == 0:
         answer_text = 'Hey, are you here? What\s up?'
         await send_message(send_message_url, chat_id, answer_text)
         save_answer(connection, chat_id, answer_text)
