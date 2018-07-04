@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='/data/i.anokhin/convai/experiments/memory_nn_batch/20180703-225239/')
 parser.add_argument('--data_dir', default='/data/i.fursov/convai/data')
 parser.add_argument('--train_knn', default='Y')
+parser.add_argument('--test_tg', default='Y')
 
 
 def check_db(connection):
@@ -162,6 +163,7 @@ async def process_updates(updates, connection, loop, send_message_url):
         message_id = update['message']['message_id']
         text = update['message']['text']
         created_at = save_message(connection, chat_id, message_id, text)
+        #if not texts.startswith('/start'):
         answers.append((
             chat_id,
             loop.run_in_executor(
@@ -192,20 +194,25 @@ async def main(loop, connection, get_updates_url, send_message_url):
 
 def get_answer(data):
     print('asdasfa')
-    answer = agent.predict(data)
-    return '¯\_(ツ)_/¯' + answer
+    if args.test_tg == 'N':
+        answer = agent.predict(data)
+        return '¯\_(ツ)_/¯' + answer
+    else:
+        return '¯\_(ツ)_/¯'
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    raw_utts = pickle.load(open(os.path.join(args.data_dir, 'raw_responses.pkl'), 'rb'))
-    emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
 
     if args.train_knn == 'Y':
         train_model = True
     else:
         train_model = False
-    agent = pred_agent(args, raw_utts, emb_path, train_model)
+
+    if args.test_tg == 'N':
+        raw_utts = pickle.load(open(os.path.join(args.data_dir, 'raw_responses.pkl'), 'rb'))
+        emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
+        agent = pred_agent(args, raw_utts, emb_path, train_model)
 
     bot_token = '9a1233af-e913-4b47-9ca9-a61851475454'  #os.environ['BOT_TOKEN']
     print('lets go!')
