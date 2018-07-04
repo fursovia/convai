@@ -167,7 +167,7 @@ async def wait_and_push(connection, chat_id, timestamp, send_message_url):
              where chat_id = ?
                and created_at > ?
         ''',
-        (chat_id, created_at)
+        (chat_id, timestamp)
     ).fetchone()[0] > 0:
         answer_text = 'Hey, are you here? What\s up?'
         await send_message(send_message_url, chat_id, answer_text)

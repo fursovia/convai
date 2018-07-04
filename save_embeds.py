@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='/data/i.anokhin/convai/experiments/memory_nn_batch/20180703-225239/')
+parser.add_argument('--model_dir', default='exp2')
 parser.add_argument('--data_dir', default='/data/i.fursov/convai/data')
 
 
