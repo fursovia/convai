@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='/data/i.anokhin/convai/experiments/memory_nn_batch/20180703-225239/')
 parser.add_argument('--data_dir', default='/data/i.fursov/convai/data')
 parser.add_argument('--train_knn', default='Y')
-parser.add_argument('--test_tg', default='Y')
+parser.add_argument('--test_tg', default='N')
 
 
 def check_db(connection):
@@ -193,7 +193,7 @@ async def main(loop, connection, get_updates_url, send_message_url):
 
 
 def get_answer(data):
-    print('asdasfa')
+    print('dict data', data)
     if args.test_tg == 'N':
         answer = agent.predict(data)
         return '¯\_(ツ)_/¯' + answer
@@ -214,7 +214,7 @@ if __name__ == '__main__':
         emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
         agent = pred_agent(args, raw_utts, emb_path, train_model)
 
-    bot_token = '9a1233af-e913-4b47-9ca9-a61851475454'  #os.environ['BOT_TOKEN']
+    bot_token = '9a1233af-e913-4b47-9ca9-a61851475454'  # os.environ['BOT_TOKEN']
     print('lets go!')
     connection = sqlite3.connect('loopai.db')
     if not check_db(connection):
