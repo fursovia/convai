@@ -27,13 +27,13 @@ class serving_input_fn:
 
 
 class pred_agent():
-    def __init__(self, args, raw_utterances, train_embeddings_path):
+    def __init__(self, args, raw_utterances, train_embeddings_path, train_model):
         self.args = args
         self.estimator = self.create_model()
         self.create_predictor()
         self.raw_utterances = raw_utterances
         self.train_embeddings_path = train_embeddings_path
-        self.fit_knn()
+        self.fit_knn(train_model=train_model)
 
         vocabs_path = os.path.join(self.args.data_dir, 'vocabs')
         uni2idx_path = os.path.join(vocabs_path, 'uni2idx.pkl')
@@ -66,9 +66,14 @@ class pred_agent():
             serving_input_fn
         )
 
-    def fit_knn(self):
+    def fit_knn(self, train_model):
         train_embeddings = pickle.load(open(self.train_embeddings_path, 'rb'))
-        self.knn_model = NearestNeighbors(n_neighbors=1).fit(train_embeddings)
+        if train_model:
+            self.knn_model = NearestNeighbors(n_neighbors=1).fit(train_embeddings)
+            self.knn_model.save_index('model/knn.index')
+        else:
+            self.knn_model = NearestNeighbors(n_neighbors=1)
+            self.knn_model.load_index('model/knn.index')
 
     def choose_from_knn(self, q_embeddings):
         indicies, _ = self.knn_model.get_labels_and_distances(q_embeddings)

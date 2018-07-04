@@ -6,8 +6,8 @@ from ml_utils import pklgz
 
 
 class NearestNeighbors(object):
-    def __init__(self, method_name='hnsw', space_name='cosinesimil', dim=300, n_neighbors=1, ef_construction=400, M=15,
-                 post=2, skip_optimized_index=0, ef_search=50):
+    def __init__(self, method_name='hnsw', space_name='cosinesimil', dim=300, n_neighbors=1, ef_construction=200, M=15,
+                 post=0, skip_optimized_index=0, ef_search=50):
         self.vector_dim = dim
         self.n_neighbors = n_neighbors
         self.index_params = {'M': M, 'efConstruction': ef_construction, 'post': post,

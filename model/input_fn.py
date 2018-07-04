@@ -16,12 +16,9 @@ def input_fn(data_dir, params, file_name, train_time=True, evaluate_epochs=None)
         dataset = dataset.shuffle(params.train_size)
         dataset = dataset.repeat(num_epochs)
 
-    dataset = dataset.apply(tf.contrib.data.map_and_batch(decode, params.batch_size, num_parallel_batches=4))
+    dataset = dataset.apply(tf.contrib.data.map_and_batch(decode, params.batch_size, num_parallel_batches=40))
     dataset = dataset.prefetch(buffer_size=None)
     return dataset
-
-
-
 
 
 def input_fn2(data_dir, params, file_name, train_time=True, evaluate_epochs=None):

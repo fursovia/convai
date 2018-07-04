@@ -36,9 +36,17 @@ if __name__ == '__main__':
     tf.logging.info("Predicting train data...")
     train_predictions = estimator.predict(lambda: input_fn(args.data_dir, params, 'unique_data', False))
 
-    train_embeddings = np.empty((0, 300))
+    # train_embeddings = np.empty((0, 300))
+    # for p in tqdm(train_predictions):
+    #     train_embeddings = np.append(train_embeddings, p['resp_emb'].reshape(-1, 300), axis=0)
+
+    train_embeddings = []
     for p in tqdm(train_predictions):
-        train_embeddings = np.append(train_embeddings, p['resp_emb'].reshape(-1, 300), axis=0)
+        train_embeddings.append(p['resp_emb'])
+
+    train_embeddings = np.array(train_embeddings, float).reshape(-1, 300)
 
     train_emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
     pickle.dump(train_embeddings, open(train_emb_path, 'wb'))
+
+    print('saved at {}'.format(train_emb_path))
