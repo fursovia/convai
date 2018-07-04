@@ -5,8 +5,7 @@ from model.model_fn import model_fn
 import pickle
 import numpy as np
 from model.utils import inference_time
-from knn import KNeighborsClassifier
-
+from knn import KNeighborsClassifier, NearestNeighbors
 import tensorflow as tf
 import os
 from model.utils import Params
@@ -14,7 +13,6 @@ from model.model_fn import model_fn
 import pickle
 import numpy as np
 from model.utils import inference_time
-from knn import KNeighborsClassifier
 
 
 class serving_input_fn:
@@ -23,12 +21,8 @@ class serving_input_fn:
                          'quest': tf.placeholder(tf.int64, shape=[None, 140]),
                          'resp': tf.placeholder(tf.int64, shape=[None, 140]),
                          'facts': tf.placeholder(tf.int64, shape=[None, 5 * 140])}
-        #         self.features = tf.placeholder(tf.int64, shape=[None, 8, 140])
-        #         self.quest = tf.placeholder(tf.int64, shape=[None, 140])
-        #         self.resp = tf.placeholder(tf.int64, shape=[None, 140])
-        #         self.facts = tf.placeholder(tf.int64, shape=[None, 5, 140])
 
-        self.receiver_tensors = self.features  # {'text': self.features}
+        self.receiver_tensors = self.features
         self.receiver_tensors_alternatives = None
 
 
@@ -74,7 +68,7 @@ class pred_agent():
 
     def fit_knn(self):
         train_embeddings = pickle.load(open(self.train_embeddings_path, 'rb'))
-        self.knn_model = KNeighborsClassifier(n_neighbors=45).fit(train_embeddings, np.zeros_like(train_embeddings))
+        self.knn_model = NearestNeighbors(n_neighbors=1).fit(train_embeddings)
 
     def choose_from_knn(self, q_embeddings):
         indicies, _ = self.knn_model.get_labels_and_distances(q_embeddings)
@@ -91,7 +85,7 @@ class pred_agent():
                                                'resp': data_to_predict_knn[:, 2].reshape(-1, 140),
                                                'facts': data_to_predict_knn[:, 3:].reshape(-1, 5 * 140)})
 
-        #         print('test_predictions_knn', test_predictions_knn)
+        # print('test_predictions_knn', test_predictions_knn)
 
         qemb = []
         for p in test_predictions_knn['hist_emb']:

@@ -2,13 +2,13 @@ import asyncio
 import uvloop
 import sqlite3
 import aiohttp
+import pickle
 import os
 import json
 import datetime
 from tg_prediction import pred_agent
 import argparse
 import os
-from knn import KNeighborsClassifier
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='experiments')
@@ -191,12 +191,16 @@ async def main(loop, connection, get_updates_url, send_message_url):
 
 
 def get_answer(data):
-
-    return '¯\_(ツ)_/¯'
+    answer = agent.predict(data)
+    return '¯\_(ツ)_/¯' + answer
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    raw_utts = pickle.load(open(os.path.join(args.data_dir, 'raw_utts.pkl'), 'rb'))
+    emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
+
+    agent = pred_agent(args, raw_utts, emb_path)
 
     bot_token = os.environ['BOT_TOKEN']
     connection = sqlite3.connect('loopai.db')
