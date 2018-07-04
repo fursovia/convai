@@ -193,7 +193,7 @@ async def main(loop, connection, get_updates_url, send_message_url):
 
 
 def get_answer(data):
-    print('asdasfa')
+    print('dict data', data)
     if args.test_tg == 'N':
         answer = agent.predict(data)
         return '¯\_(ツ)_/¯' + answer

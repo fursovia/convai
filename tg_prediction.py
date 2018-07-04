@@ -82,9 +82,9 @@ class pred_agent():
 
     def predict(self, super_dict):
         vocabs = [self.uni2idx, self.bi2idx, self.char2idx]
-
+        print('vocabs', vocabs)
         data_to_predict_knn = inference_time(super_dict, np.zeros((1, 140)), vocabs, 1)
-        #         print(data_to_predict_knn)
+        print('predict this data', data_to_predict_knn)
         test_predictions_knn = self.predictor({'cont': data_to_predict_knn[:, 0].reshape(-1, 140),
                                                'quest': data_to_predict_knn[:, 1].reshape(-1, 140),
                                                'resp': data_to_predict_knn[:, 2].reshape(-1, 140),
