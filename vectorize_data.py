@@ -20,6 +20,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    raw_path = os.path.join(args.data_dir, 'raw_df.csv')
     table_path = os.path.join(args.data_dir, 'cleaned_df.csv')
     table_path2 = os.path.join(args.data_dir, 'cleaned_char_df.csv')
 
@@ -28,9 +29,11 @@ if __name__ == '__main__':
     if args.nrows != -1:
         df_cleaned_char = pd.read_csv(table_path2, nrows=args.nrows)
         df_cleaned = pd.read_csv(table_path, nrows=args.nrows)
+        df_raw = pd.read_csv(raw_path, nrows=args.nrows)
     else:
         df_cleaned_char = pd.read_csv(table_path2, nrows=None)
         df_cleaned = pd.read_csv(table_path, nrows=None)
+        df_raw = pd.read_csv(raw_path, nrows=None)
 
     df_cleaned = df_cleaned.fillna('')
     df_cleaned_char = df_cleaned_char.fillna('')
@@ -80,58 +83,64 @@ if __name__ == '__main__':
         c_res = np.zeros((len(wb_res), 100), int) # p.map(vect_char_, df_cleaned_char['context'])
     with Pool(15) as p:
         print('2')
-        c_res1 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['question'])
+        #c_res1 = c_res # p.map(vect_char, df_cleaned_char['question'])
         wb_res1 = p.map(vect_wb, df_cleaned['question'])
     with Pool(15) as p:
         print('3')
-        c_res2 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['reply'])
+        #c_res2 = c_res # p.map(vect_char, df_cleaned_char['reply'])
         wb_res2 = p.map(vect_wb, df_cleaned['reply'])
     with Pool(15) as p:
         print('4')
-        c_res3 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['fact1'])
+        #c_res3 = c_res # p.map(vect_char, df_cleaned_char['fact1'])
         wb_res3 = p.map(vect_wb, df_cleaned['fact1'])
     with Pool(15) as p:
         print('5')
-        c_res4 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['fact2'])
+        #c_res4 = c_res # p.map(vect_char, df_cleaned_char['fact2'])
         wb_res4 = p.map(vect_wb, df_cleaned['fact2'])
     with Pool(15) as p:
         print('6')
-        c_res5 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['fact3'])
+        #c_res5 = c_res # p.map(vect_char, df_cleaned_char['fact3'])
         wb_res5 = p.map(vect_wb, df_cleaned['fact3'])
     with Pool(15) as p:
         print('7')
-        c_res6 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['fact4'])
+        #c_res6 = c_res # p.map(vect_char, df_cleaned_char['fact4'])
         wb_res6 = p.map(vect_wb, df_cleaned['fact4'])
     with Pool(15) as p:
         print('8')
-        c_res7 = np.zeros((len(wb_res), 100), int) # p.map(vect_char, df_cleaned_char['fact5'])
+        #c_res7 = c_res # p.map(vect_char, df_cleaned_char['fact5'])
         wb_res7 = p.map(vect_wb, df_cleaned['fact5'])
 
     print('saving...')
     data = np.hstack((wb_res, c_res,
-                      wb_res1, c_res1,
-                      wb_res2, c_res2,
-                      wb_res3, c_res3,
-                      wb_res4, c_res4,
-                      wb_res5, c_res5,
-                      wb_res6, c_res6,
-                      wb_res7, c_res7)).reshape(-1, 8, 140)
+                      wb_res1, c_res,
+                      wb_res2, c_res,
+                      wb_res3, c_res,
+                      wb_res4, c_res,
+                      wb_res5, c_res,
+                      wb_res6, c_res,
+                      wb_res7, c_res)).reshape(-1, 8, 140)
 
-    responses = np.hstack((wb_res2, c_res2)).reshape(-1, 140)
+    responses = np.hstack((wb_res2, c_res)).reshape(-1, 140)
+    unique_responses, indexes = np.unique(responses, axis=0, return_index=True)
+    unique_data = data[indexes]
+
+    raw_responses = df_raw['reply'].values
+    raw_responses = raw_responses[indexes]
 
     print('data shape = {}'.format(data.shape))
+    print('responses shape = {}'.format(unique_responses.shape))
+    print('raw responses num = {}'.format(len(raw_responses)))
 
     Y = df_cleaned['labels'].values.ravel()
+    unique_labels = Y[indexes]
 
-    Ytr, Yev, Xtr, Xev, Rtr, Rte = train_test_split(Y,
-                                                    data,
-                                                    responses,
-                                                    test_size=0.1,
-                                                    random_state=24)
+    Ytr, Yev, Xtr, Xev = train_test_split(Y,
+                                          data,
+                                          test_size=0.1,
+                                          random_state=24)
 
-    pickle.dump(responses, open(os.path.join(args.data_dir, 'full_R.pkl'), 'wb'))
-    pickle.dump(Rtr, open(os.path.join(args.data_dir, 'train_R.pkl'), 'wb'))
-    pickle.dump(Rte, open(os.path.join(args.data_dir, 'test_R.pkl'), 'wb'))
+    pickle.dump(unique_responses, open(os.path.join(args.data_dir, 'responses.pkl'), 'wb'))
+    pickle.dump(raw_responses, open(os.path.join(args.data_dir, 'raw_responses.pkl'), 'wb'))
 
     sample_path = os.path.join(args.data_dir, 'sample')
 
@@ -142,6 +151,7 @@ if __name__ == '__main__':
     convert_to_records([data, Y], 'full', args.data_dir)
     convert_to_records([Xtr, Ytr], 'train', args.data_dir)
     convert_to_records([Xev, Yev], 'eval', args.data_dir)
+    convert_to_records([unique_data, unique_labels], 'unique_data', args.data_dir)
 
     convert_to_records([data[:1000], Y[:1000]], 'full', sample_path)
     convert_to_records([Xtr[:1000], Ytr[:1000]], 'train', sample_path)

@@ -11,8 +11,8 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='experiments')
-parser.add_argument('--data_dir', default='data')
+parser.add_argument('--model_dir', default='/data/i.anokhin/convai/experiments/memory_nn_batch/20180703-225239/')
+parser.add_argument('--data_dir', default='/data/i.fursov/convai/data')
 
 
 def check_db(connection):
@@ -197,7 +197,7 @@ def get_answer(data):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    raw_utts = pickle.load(open(os.path.join(args.data_dir, 'raw_utts.pkl'), 'rb'))
+    raw_utts = pickle.load(open(os.path.join(args.data_dir, 'raw_responses.pkl'), 'rb'))
     emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
 
     agent = pred_agent(args, raw_utts, emb_path)
