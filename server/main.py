@@ -153,6 +153,7 @@ async def process_updates(updates, connection, loop, send_message_url):
         message_id = update['message']['message_id']
         text = update['message']['text']
         created_at = save_message(connection, chat_id, message_id, text)
+        #if not texts.startswith('/start'):
         answers.append((
             chat_id,
             loop.run_in_executor(
