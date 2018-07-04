@@ -69,7 +69,7 @@ class pred_agent():
     def fit_knn(self, train_model):
         train_embeddings = pickle.load(open(self.train_embeddings_path, 'rb'))
         if train_model:
-            self.knn_model = NearestNeighbors(n_neighbors=1).fit(train_embeddings)
+            self.knn_model = KNeighborsClassifier(n_neighbors=1).fit(train_embeddings, np.zeros_like(train_embeddings))
             self.knn_model.save_index('model/knn.index')
         else:
             self.knn_model = NearestNeighbors(n_neighbors=1)
