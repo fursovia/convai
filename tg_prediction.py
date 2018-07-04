@@ -78,7 +78,7 @@ class pred_agent():
     def choose_from_knn(self, q_embeddings):
         indicies, _ = self.knn_model.get_labels_and_distances(q_embeddings)
         chosen = self.raw_utterances[indicies]
-        return chosen
+        return str(chosen[0])
 
     def predict(self, super_dict):
         vocabs = [self.uni2idx, self.bi2idx, self.char2idx]
@@ -99,5 +99,6 @@ class pred_agent():
         qemb = np.array(qemb, float).reshape(-1, 300)
 
         chosen = self.choose_from_knn(qemb)
+        print(chosen)
 
         return chosen
