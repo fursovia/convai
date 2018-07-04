@@ -69,16 +69,17 @@ class pred_agent():
     def fit_knn(self, train_model):
         train_embeddings = pickle.load(open(self.train_embeddings_path, 'rb'))
         if train_model:
-            self.knn_model = KNeighborsClassifier(n_neighbors=1).fit(train_embeddings, np.zeros_like(train_embeddings))
+            self.knn_model = KNeighborsClassifier(n_neighbors=5).fit(train_embeddings, np.zeros_like(train_embeddings))
             self.knn_model.save_index('model/knn.index')
         else:
-            self.knn_model = KNeighborsClassifier(n_neighbors=1)
+            self.knn_model = KNeighborsClassifier
             self.knn_model.load_index('model/knn.index')
 
     def choose_from_knn(self, q_embeddings):
         indicies, _ = self.knn_model.get_labels_and_distances(q_embeddings)
         chosen = self.raw_utterances[indicies]
-        return str(chosen[0])
+        print(chosen)
+        return str(chosen[0][0])
 
     def predict(self, super_dict):
         vocabs = [self.uni2idx, self.bi2idx, self.char2idx]
@@ -99,6 +100,5 @@ class pred_agent():
         qemb = np.array(qemb, float).reshape(-1, 300)
 
         chosen = self.choose_from_knn(qemb)
-        print(chosen)
-
+        print('second time: ', chosen)
         return chosen
