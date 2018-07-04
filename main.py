@@ -117,6 +117,7 @@ def save_message(connection, chat_id, message_id, text):
             created_at
         )
     )
+    connection.commit()
     return created_at
 
 
@@ -138,6 +139,7 @@ def save_answer(connection, chat_id, text):
             created_at
         )
     )
+    connection.commit()
     return created_at
 
 
@@ -154,6 +156,22 @@ def form_data(connection, chat_id, text, created_at):
             chat_id
         )
     }
+
+
+async def wait_and_push(connection, chat_id, timestamp, send_message_url):
+    await asyncio.sleep(20)
+    if connection.execute(
+        '''
+            select count(1)
+              from messages
+             where chat_id = ?
+               and created_at > ?
+        ''',
+        (chat_id, created_at)
+    ).fetchone()[0] > 0:
+        answer_text = 'ping'
+        await send_message(send_message_url, chat_id, answer_text)
+        save_answer(connection, chat_id, answer_text)
 
 
 async def process_updates(updates, connection, loop, send_message_url):
@@ -176,7 +194,16 @@ async def process_updates(updates, connection, loop, send_message_url):
     for chat_id, answer in answers:
         answer_text = await answer
         sends.append(send_message(send_message_url, chat_id, answer_text))
-        save_answer(connection, chat_id, answer_text)
+        timestamp = save_answer(connection, chat_id, answer_text)
+        asyncio.ensure_future(
+            wait_and_push(
+                connection,
+                chat_id,
+                timestamp,
+                send_message_url
+            ),
+            loop=loop
+        )
     for send in sends:
         await send
 
@@ -194,6 +221,8 @@ async def main(loop, connection, get_updates_url, send_message_url):
 
 def get_answer(data):
     print('dict data', data)
+    if not data['context']:
+        ...  # first message from user. do something
     if args.test_tg == 'N':
         answer = agent.predict(data)
         return '¯\_(ツ)_/¯' + answer
