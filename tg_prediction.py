@@ -1,56 +1,103 @@
 import tensorflow as tf
-import argparse
 import os
 from model.utils import Params
 from model.model_fn import model_fn
 import pickle
 import numpy as np
-from model.input_fn import pred_input_fn
 from model.utils import inference_time
-import pandas as pd
-from model.input_fn import pred_input_fn
+from knn import KNeighborsClassifier, NearestNeighbors
+import tensorflow as tf
+import os
+from model.utils import Params
+from model.model_fn import model_fn
+import pickle
+import numpy as np
+from model.utils import inference_time
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='experiments')
-parser.add_argument('--data_dir', default='data')
+class serving_input_fn:
+    def __init__(self):
+        self.features = {'cont': tf.placeholder(tf.int64, shape=[None, 140]),
+                         'quest': tf.placeholder(tf.int64, shape=[None, 140]),
+                         'resp': tf.placeholder(tf.int64, shape=[None, 140]),
+                         'facts': tf.placeholder(tf.int64, shape=[None, 5 * 140])}
+
+        self.receiver_tensors = self.features
+        self.receiver_tensors_alternatives = None
 
 
-if __name__ == '__main__':
+class pred_agent():
+    def __init__(self, args, raw_utterances, train_embeddings_path, train_model):
+        self.args = args
+        self.estimator = self.create_model()
+        self.create_predictor()
+        self.raw_utterances = raw_utterances
+        self.train_embeddings_path = train_embeddings_path
+        self.fit_knn(train_model=train_model)
 
-    args = parser.parse_args()
+        vocabs_path = os.path.join(self.args.data_dir, 'vocabs')
+        uni2idx_path = os.path.join(vocabs_path, 'uni2idx.pkl')
+        bi2idx_path = os.path.join(vocabs_path, 'bi2idx.pkl')
+        char2idx_path = os.path.join(vocabs_path, 'char2idx.pkl')
 
-    tf.reset_default_graph()
-    tf.logging.set_verbosity(tf.logging.INFO)
+        self.uni2idx = pickle.load(open(uni2idx_path, 'rb'))
+        self.bi2idx = pickle.load(open(bi2idx_path, 'rb'))
+        self.char2idx = pickle.load(open(char2idx_path, 'rb'))
 
-    data = pd.read_csv(os.path.join(args.data_dir, 'initial/full.csv'))
-    data2 = pd.read_csv(os.path.join(args.data_dir, 'raw_df.csv'))
-    uts2 = data2['reply'].values
-    all_utts = data['reply'].values
-    unique_utts, indexes = np.unique(all_utts, return_index=True)
-    raw_utts = uts2[indexes]
+    def create_model(self):
+        tf.reset_default_graph()
+        tf.logging.set_verbosity(tf.logging.INFO)
 
-    # ПОДГРУЖАЕМ ПАРАМЕТРЫ
-    json_path = os.path.join(args.model_dir, 'params.json')
-    assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
-    params = Params(json_path)
+        # ПОДГРУЖАЕМ ПАРАМЕТРЫ
+        json_path = os.path.join(self.args.model_dir, 'params.json')
+        assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
+        self.params = Params(json_path)
 
-    # ОПРЕДЕЛЯЕМ МОДЕЛЬ
-    tf.logging.info("Creating the model...")
-    config = tf.estimator.RunConfig(tf_random_seed=230, model_dir=args.model_dir)
+        # ОПРЕДЕЛЯЕМ МОДЕЛЬ
+        tf.logging.info("Creating the model...")
+        config = tf.estimator.RunConfig(tf_random_seed=230, model_dir=self.args.model_dir)
 
-    estimator = tf.estimator.Estimator(model_fn, params=params, config=config)
+        estimator = tf.estimator.Estimator(model_fn, params=self.params, config=config)
+        return estimator
 
+    def create_predictor(self):
+        self.predictor = tf.contrib.predictor.from_estimator(
+            self.estimator,
+            serving_input_fn
+        )
 
-    data_to_predict = inference_time(DICT_FROM_MISHA, unique_utts)  # dataframe
+    def fit_knn(self, train_model):
+        train_embeddings = pickle.load(open(self.train_embeddings_path, 'rb'))
+        if train_model:
+            self.knn_model = NearestNeighbors(n_neighbors=1).fit(train_embeddings)
+            self.knn_model.save_index('model/knn.index')
+        else:
+            self.knn_model = NearestNeighbors(n_neighbors=1)
+            self.knn_model.load_index('model/knn.index')
 
-    train_predictions = estimator.predict(pred_input_fn(data_to_predict))
+    def choose_from_knn(self, q_embeddings):
+        indicies, _ = self.knn_model.get_labels_and_distances(q_embeddings)
+        chosen = self.raw_utterances[indicies]
+        return chosen
 
-    preds = []
-    for i, p in enumerate(train_predictions):
-        preds.append(p['y_prob'])
+    def predict(self, super_dict):
+        vocabs = [self.uni2idx, self.bi2idx, self.char2idx]
 
-    preds = np.array(preds, float)
-    max_el = np.argmax(preds)
+        data_to_predict_knn = inference_time(super_dict, np.zeros((1, 140)), vocabs, 1)
+        #         print(data_to_predict_knn)
+        test_predictions_knn = self.predictor({'cont': data_to_predict_knn[:, 0].reshape(-1, 140),
+                                               'quest': data_to_predict_knn[:, 1].reshape(-1, 140),
+                                               'resp': data_to_predict_knn[:, 2].reshape(-1, 140),
+                                               'facts': data_to_predict_knn[:, 3:].reshape(-1, 5 * 140)})
 
-    what_to_return = raw_utts[max_el]
+        # print('test_predictions_knn', test_predictions_knn)
+
+        qemb = []
+        for p in test_predictions_knn['hist_emb']:
+            #             print('p', p)
+            qemb.append(p)
+        qemb = np.array(qemb, float).reshape(-1, 300)
+
+        chosen = self.choose_from_knn(qemb)
+
+        return chosen

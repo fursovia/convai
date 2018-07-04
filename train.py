@@ -6,25 +6,27 @@ import tensorflow as tf
 from model.input_fn import input_fn, input_fn2
 from model.model_fn import model_fn
 from model.utils import Params
-
+from datetime import datetime
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='experiments',
+parser.add_argument('--model_dir', default='exp',
                     help="Experiment directory containing params.json")
-parser.add_argument('--data_dir', default='data',
+parser.add_argument('--data_dir', default='/data/i.anokhin/convai/data_convai',
                     help="Directory containing the dataset")
 # parser.add_argument('--final_train', default='N',
 #                     help="Whether to train on a whole dataset")
-parser.add_argument('--train_evaluate', default='Y',
+parser.add_argument('--train_evaluate', default='N',
                     help="train and evaluate each epoch")
 parser.add_argument('--hub', default='N')
-parser.add_argument('--num_gpus', type=int, default=1,
+parser.add_argument('--num_gpus', type=int, default=4,
                     help="Number of GPUs to train on")
-parser.add_argument('--save_epoch', type=int, default=3,
+parser.add_argument('--save_epoch', type=int, default=2,
                     help="Save checkpoints every N epochs")
-parser.add_argument('--evaluate_every_epoch', type=int, default=3,
+parser.add_argument('--evaluate_every_epoch', type=int, default=1,
                     help="Evaluate every X epochs")
-
+parser.add_argument('--new_folder', dest='new_folder', action='store_true',
+                    help="whether to write tensorboard logs in new folder")
+parser.set_defaults(new_folder=False)
 
 if __name__ == '__main__':
     tf.reset_default_graph()
@@ -51,7 +53,11 @@ if __name__ == '__main__':
     print('Batch size = {}'.format(params.batch_size))
     print('Checkpoint every {} steps'.format(checkpoint_every))
 
-    model_dir = args.model_dir
+    if args.new_folder:
+        now = datetime.now()
+        model_dir = os.path.join(args.model_dir, params.architecture, now.strftime("%Y%m%d-%H%M%S"))
+    else:
+        model_dir = args.model_dir
 
     config = tf.estimator.RunConfig(tf_random_seed=230,
                                     model_dir=model_dir,
@@ -65,13 +71,13 @@ if __name__ == '__main__':
                                        params=params,
                                        config=config)
 
-    # if os.path.isfile(os.path.join(args.model_dir, 'checkpoint')):
-    #     states = tf.train.get_checkpoint_state(model_dir)
-    #     all_states = states.model_checkpoint_path
-    #     global_step = int(all_states.split('-')[-1])
-    #     print('GLOBAL STEP = {}'.format(global_step))
-    # else:
-    #     global_step = 0
+    if os.path.isfile(os.path.join(args.model_dir, 'checkpoint')):
+        states = tf.train.get_checkpoint_state(model_dir)
+        all_states = states.model_checkpoint_path
+        global_step = int(all_states.split('-')[-1])
+        print('GLOBAL STEP = {}'.format(global_step))
+    else:
+        global_step = 0
 
     # Train the model
     tf.logging.info("Starting training for {} epoch(s).".format(params.num_epochs))

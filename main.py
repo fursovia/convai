@@ -2,9 +2,18 @@ import asyncio
 import uvloop
 import sqlite3
 import aiohttp
-import os
+import pickle
 import json
 import datetime
+from tg_prediction import pred_agent
+import argparse
+import os
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--model_dir', default='/data/i.anokhin/convai/experiments/memory_nn_batch/20180703-225239/')
+parser.add_argument('--data_dir', default='/data/i.fursov/convai/data')
+parser.add_argument('--train_knn', default='Y')
+
 
 def check_db(connection):
     return connection.execute(
@@ -183,11 +192,24 @@ async def main(loop, connection, get_updates_url, send_message_url):
 
 
 def get_answer(data):
-    return '¯\_(ツ)_/¯'
+    print('asdasfa')
+    answer = agent.predict(data)
+    return '¯\_(ツ)_/¯' + answer
 
 
 if __name__ == '__main__':
-    bot_token = os.environ['BOT_TOKEN']
+    args = parser.parse_args()
+    raw_utts = pickle.load(open(os.path.join(args.data_dir, 'raw_responses.pkl'), 'rb'))
+    emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
+
+    if args.train_knn == 'Y':
+        train_model = True
+    else:
+        train_model = False
+    agent = pred_agent(args, raw_utts, emb_path, train_model)
+
+    bot_token = '9a1233af-e913-4b47-9ca9-a61851475454'  #os.environ['BOT_TOKEN']
+    print('lets go!')
     connection = sqlite3.connect('loopai.db')
     if not check_db(connection):
         setup_db(connection)
