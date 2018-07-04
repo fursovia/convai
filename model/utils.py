@@ -133,6 +133,26 @@ def decode(serialized_example):
     return sent, label
 
 
+def decode_rawtext(serialized_example):
+    """Parses an image and label from the given `serialized_example`."""
+
+    features_pattern = {'label': tf.FixedLenFeature([], tf.int64)}
+
+    features_pattern['cont'] = tf.FixedLenFeature([], tf.string)
+    features_pattern['quest'] = tf.FixedLenFeature([], tf.string)
+    features_pattern['resp'] = tf.FixedLenFeature([], tf.string)
+    features_pattern['fact1'] = tf.FixedLenFeature([], tf.string)
+    features_pattern['fact2'] = tf.FixedLenFeature([], tf.string)
+    features_pattern['fact3'] = tf.FixedLenFeature([], tf.string)
+    features_pattern['fact4'] = tf.FixedLenFeature([], tf.string)
+    features_pattern['fact5'] = tf.FixedLenFeature([], tf.string)
+    features = tf.parse_single_example(serialized_example, features=features_pattern)
+    label = features.pop('label')
+    sent = features
+
+    return sent, label
+
+
 def clean(text, stem=True):
     text = text.strip().lower()
     text = re.sub('[^\w\s]', ' ', text)
