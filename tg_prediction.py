@@ -5,23 +5,31 @@ from model.model_fn import model_fn
 import pickle
 import numpy as np
 from model.utils import inference_time
+from knn import KNeighborsClassifier
 
 
 class serving_input_fn:
     def __init__(self):
-        self.features = tf.placeholder(tf.int64, shape=[None, 140])
-        self.receiver_tensors = {
-           'text': self.features,
-        }
+        self.features = {'cont': tf.placeholder(tf.int64, shape=[None, 140]),
+           'quest': tf.placeholder(tf.int64, shape=[None, 140]),
+           'resp': tf.placeholder(tf.int64, shape=[None, 140]),
+           'facts': tf.placeholder(tf.int64, shape=[None, 5*140]) }
+#         self.features = tf.placeholder(tf.int64, shape=[None, 8, 140])
+#         self.quest = tf.placeholder(tf.int64, shape=[None, 140])
+#         self.resp = tf.placeholder(tf.int64, shape=[None, 140])
+#         self.facts = tf.placeholder(tf.int64, shape=[None, 5, 140])
+
+        self.receiver_tensors = {'text': self.features}
         self.receiver_tensors_alternatives = None
 
 class pred_agent():
-    def __init__(self, args, raw_utterances, vectorized_responses, embeded_responses):
+    def __init__(self, args, raw_utterances, train_embeddings_path):
         self.args = args
         self.estimator = self.create_model()
+        self.create_predictor()
         self.raw_utterances = raw_utterances
-        self.vectorized_responses = vectorized_responses
-        self.embeded_responses = embeded_responses
+        self.train_embeddings_path = train_embeddings_path
+        self.fit_knn()
 
         vocabs_path = os.path.join(self.args.data_dir, 'vocabs')
         uni2idx_path = os.path.join(vocabs_path, 'uni2idx.pkl')
@@ -38,13 +46,13 @@ class pred_agent():
         tf.logging.set_verbosity(tf.logging.INFO)
 
         # ПОДГРУЖАЕМ ПАРАМЕТРЫ
-        json_path = os.path.join(self.args['model_dir'], 'params.json')
+        json_path = os.path.join(self.args.model_dir, 'params.json')
         assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
         self.params = Params(json_path)
 
         # ОПРЕДЕЛЯЕМ МОДЕЛЬ
         tf.logging.info("Creating the model...")
-        config = tf.estimator.RunConfig(tf_random_seed=230, model_dir=self.args['model_dir'])
+        config = tf.estimator.RunConfig(tf_random_seed=230, model_dir=self.args.model_dir)
 
         estimator = tf.estimator.Estimator(model_fn, params=self.params, config=config)
         return estimator
@@ -55,38 +63,31 @@ class pred_agent():
             serving_input_fn
         )
 
-    def choose_from_knn(self, q_embeddings):
-        _, indexes = None  # knn(q_embeddings)
-        chosen_vectorized_elements = self.vectorized_responses[indexes]
-        chosen_raw_elemenst = self.raw_utterances[indexes]
+    def fit_knn(self):
+        train_embeddings = pickle.load(open(self.train_embeddings_path, 'rb'))
+        self.knn_model = KNeighborsClassifier(n_neighbors=45).fit(train_embeddings, np.zeros_like(train_embeddings))
 
-        return chosen_vectorized_elements, chosen_raw_elemenst
+
+    def choose_from_knn(self, q_embeddings):
+        indicies, _ = self.knn_model.get_labels_and_distances(q_embeddings)
+        chosen = self.raw_utterances[indicies]
+        return chosen
 
     def predict(self, super_dict):
         vocabs = [self.uni2idx, self.bi2idx, self.char2idx]
 
-        data_to_predict_knn = inference_time(super_dict, self.vectorized_responses, vocabs, 1)  # ['q_emb']
-
-        test_predictions_knn = self.predictor({'text': data_to_predict_knn})
+        data_to_predict_knn = inference_time(super_dict, np.zeros((1, 140)), vocabs, 1)  # ['q_emb']
+        print(data_to_predict_knn)
+        test_predictions_knn = self.predictor({'text': {'cont': data_to_predict_knn[:,0].reshape(-1, 140),
+                                              'quest': data_to_predict_knn[:,1].reshape(-1, 140),
+                                              'resp': data_to_predict_knn[:,2].reshape(-1, 140),
+                                              'facts': data_to_predict_knn[:,3:].reshape(-1, 5*140)}})
 
         qemb = []
         for i, p in enumerate(test_predictions_knn):
-            qemb.append(p['q_emb'])
+            qemb.append(p['hist_embed'])
         qemb = np.array(qemb, float).reshape(-1, 300)
 
-        chosen_vects, chosen_raw = self.choose_from_knn(qemb)
+        chosen = self.choose_from_knn(qemb)
 
-        data_to_predict = inference_time(super_dict, chosen_vects, vocabs)
-
-        test_predictions = self.predictor({'text': data_to_predict})  # ['y_prob']
-
-        preds = []
-        for i, p in enumerate(test_predictions):
-            preds.append(p['y_prob'])
-
-        preds = np.array(preds, float)
-        max_element = np.argmax(preds)
-
-        what_to_return = chosen_raw[max_element]
-
-        return what_to_return
+        return chosen

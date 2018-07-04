@@ -117,7 +117,7 @@ def get_loss(labels, embeddings, params):
     Returns:
         triplet_loss: scalar tensor containing the triplet loss
     """
-
+    print('helllllllllll')
     if params.loss_type == 'usual':
 
         one_hot_labels = tf.one_hot(labels, 2)
@@ -127,6 +127,7 @@ def get_loss(labels, embeddings, params):
             )
         return loss
     else:
+        print('qwrq wrqasf')
         # Get the pairwise distance matrix
         question, response = embeddings
         question = tf.cast(question, dtype=tf.float32)
