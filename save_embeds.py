@@ -8,11 +8,12 @@ from model.input_fn import input_fn
 from model.model_fn import model_fn
 import pickle
 import numpy as np
+from tqdm import tqdm
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='exp')
-parser.add_argument('--data_dir', default='/data/i.anokhin/convai/data_convai')
+parser.add_argument('--model_dir', default='/data/i.anokhin/convai/experiments/memory_nn_batch/20180703-225239/')
+parser.add_argument('--data_dir', default='/data/i.fursov/convai/data')
 
 
 if __name__ == '__main__':
@@ -33,11 +34,19 @@ if __name__ == '__main__':
 
     # ПОЛУЧАЕМ ВСЕ ЭМБЕДИНГИ ИЗ ТРЕЙНА
     tf.logging.info("Predicting train data...")
-    train_predictions = estimator.predict(lambda: input_fn(args.data_dir, params, 'eval', False))
+    train_predictions = estimator.predict(lambda: input_fn(args.data_dir, params, 'unique_data', False))
 
-    train_embeddings = np.empty((0, 300))
-    for p in train_predictions:
-        train_embeddings = np.append(train_embeddings, p['resp_emb'].reshape(-1, 300), axis=0)
+    # train_embeddings = np.empty((0, 300))
+    # for p in tqdm(train_predictions):
+    #     train_embeddings = np.append(train_embeddings, p['resp_emb'].reshape(-1, 300), axis=0)
+
+    train_embeddings = []
+    for p in tqdm(train_predictions):
+        train_embeddings.append(p['resp_emb'])
+
+    train_embeddings = np.array(train_embeddings, float).reshape(-1, 300)
 
     train_emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
     pickle.dump(train_embeddings, open(train_emb_path, 'wb'))
+
+    print('saved at {}'.format(train_emb_path))

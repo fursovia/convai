@@ -5,8 +5,7 @@ from model.model_fn import model_fn
 import pickle
 import numpy as np
 from model.utils import inference_time
-from knn import KNeighborsClassifier
-
+from knn import KNeighborsClassifier, NearestNeighbors
 import tensorflow as tf
 import os
 from model.utils import Params
@@ -14,7 +13,6 @@ from model.model_fn import model_fn
 import pickle
 import numpy as np
 from model.utils import inference_time
-from knn import KNeighborsClassifier
 
 
 class serving_input_fn:
@@ -23,23 +21,19 @@ class serving_input_fn:
                          'quest': tf.placeholder(tf.int64, shape=[None, 140]),
                          'resp': tf.placeholder(tf.int64, shape=[None, 140]),
                          'facts': tf.placeholder(tf.int64, shape=[None, 5 * 140])}
-        #         self.features = tf.placeholder(tf.int64, shape=[None, 8, 140])
-        #         self.quest = tf.placeholder(tf.int64, shape=[None, 140])
-        #         self.resp = tf.placeholder(tf.int64, shape=[None, 140])
-        #         self.facts = tf.placeholder(tf.int64, shape=[None, 5, 140])
 
-        self.receiver_tensors = self.features  # {'text': self.features}
+        self.receiver_tensors = self.features
         self.receiver_tensors_alternatives = None
 
 
 class pred_agent():
-    def __init__(self, args, raw_utterances, train_embeddings_path):
+    def __init__(self, args, raw_utterances, train_embeddings_path, train_model):
         self.args = args
         self.estimator = self.create_model()
         self.create_predictor()
         self.raw_utterances = raw_utterances
         self.train_embeddings_path = train_embeddings_path
-        self.fit_knn()
+        self.fit_knn(train_model=train_model)
 
         vocabs_path = os.path.join(self.args.data_dir, 'vocabs')
         uni2idx_path = os.path.join(vocabs_path, 'uni2idx.pkl')
@@ -72,26 +66,32 @@ class pred_agent():
             serving_input_fn
         )
 
-    def fit_knn(self):
+    def fit_knn(self, train_model):
         train_embeddings = pickle.load(open(self.train_embeddings_path, 'rb'))
-        self.knn_model = KNeighborsClassifier(n_neighbors=45).fit(train_embeddings, np.zeros_like(train_embeddings))
+        if train_model:
+            self.knn_model = KNeighborsClassifier(n_neighbors=5).fit(train_embeddings, np.zeros_like(train_embeddings))
+            self.knn_model.save_index('model/knn.index')
+        else:
+            self.knn_model = KNeighborsClassifier
+            self.knn_model.load_index('model/knn.index')
 
     def choose_from_knn(self, q_embeddings):
         indicies, _ = self.knn_model.get_labels_and_distances(q_embeddings)
         chosen = self.raw_utterances[indicies]
-        return chosen
+        print(chosen)
+        return str(chosen[0][0])
 
     def predict(self, super_dict):
         vocabs = [self.uni2idx, self.bi2idx, self.char2idx]
-
+        print('vocabs')
         data_to_predict_knn = inference_time(super_dict, np.zeros((1, 140)), vocabs, 1)
-        #         print(data_to_predict_knn)
+        print('predict this data')
         test_predictions_knn = self.predictor({'cont': data_to_predict_knn[:, 0].reshape(-1, 140),
                                                'quest': data_to_predict_knn[:, 1].reshape(-1, 140),
                                                'resp': data_to_predict_knn[:, 2].reshape(-1, 140),
                                                'facts': data_to_predict_knn[:, 3:].reshape(-1, 5 * 140)})
 
-        #         print('test_predictions_knn', test_predictions_knn)
+        # print('test_predictions_knn', test_predictions_knn)
 
         qemb = []
         for p in test_predictions_knn['hist_emb']:
@@ -100,5 +100,5 @@ class pred_agent():
         qemb = np.array(qemb, float).reshape(-1, 300)
 
         chosen = self.choose_from_knn(qemb)
-
+        print('second time: ', chosen)
         return chosen

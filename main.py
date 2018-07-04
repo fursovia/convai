@@ -2,17 +2,18 @@ import asyncio
 import uvloop
 import sqlite3
 import aiohttp
-import os
+import pickle
 import json
 import datetime
 from tg_prediction import pred_agent
 import argparse
 import os
-from knn import KNeighborsClassifier
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='experiments')
-parser.add_argument('--data_dir', default='data')
+parser.add_argument('--model_dir', default='/data/i.anokhin/convai/experiments/memory_nn_batch/20180703-225239/')
+parser.add_argument('--data_dir', default='/data/i.fursov/convai/data')
+parser.add_argument('--train_knn', default='Y')
+parser.add_argument('--test_tg', default='N')
 
 
 def check_db(connection):
@@ -116,6 +117,7 @@ def save_message(connection, chat_id, message_id, text):
             created_at
         )
     )
+    connection.commit()
     return created_at
 
 
@@ -137,6 +139,7 @@ def save_answer(connection, chat_id, text):
             created_at
         )
     )
+    connection.commit()
     return created_at
 
 
@@ -155,6 +158,22 @@ def form_data(connection, chat_id, text, created_at):
     }
 
 
+async def wait_and_push(connection, chat_id, timestamp, send_message_url):
+    await asyncio.sleep(20)
+    if connection.execute(
+        '''
+            select count(1)
+              from messages
+             where chat_id = ?
+               and created_at > ?
+        ''',
+        (chat_id, created_at)
+    ).fetchone()[0] > 0:
+        answer_text = 'ping'
+        await send_message(send_message_url, chat_id, answer_text)
+        save_answer(connection, chat_id, answer_text)
+
+
 async def process_updates(updates, connection, loop, send_message_url):
     answers = []
     for update in updates:
@@ -162,6 +181,7 @@ async def process_updates(updates, connection, loop, send_message_url):
         message_id = update['message']['message_id']
         text = update['message']['text']
         created_at = save_message(connection, chat_id, message_id, text)
+        #if not texts.startswith('/start'):
         answers.append((
             chat_id,
             loop.run_in_executor(
@@ -174,7 +194,16 @@ async def process_updates(updates, connection, loop, send_message_url):
     for chat_id, answer in answers:
         answer_text = await answer
         sends.append(send_message(send_message_url, chat_id, answer_text))
-        save_answer(connection, chat_id, answer_text)
+        timestamp = save_answer(connection, chat_id, answer_text)
+        asyncio.ensure_future(
+            wait_and_push(
+                connection,
+                chat_id,
+                timestamp,
+                send_message_url
+            ),
+            loop=loop
+        )
     for send in sends:
         await send
 
@@ -191,14 +220,31 @@ async def main(loop, connection, get_updates_url, send_message_url):
 
 
 def get_answer(data):
-
-    return '¯\_(ツ)_/¯'
+    print('dict data', data)
+    if not data['context']:
+        ...  # first message from user. do something
+    if args.test_tg == 'N':
+        answer = agent.predict(data)
+        return '¯\_(ツ)_/¯' + answer
+    else:
+        return '¯\_(ツ)_/¯'
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    bot_token = os.environ['BOT_TOKEN']
+    if args.train_knn == 'Y':
+        train_model = True
+    else:
+        train_model = False
+
+    if args.test_tg == 'N':
+        raw_utts = pickle.load(open(os.path.join(args.data_dir, 'raw_responses.pkl'), 'rb'))
+        emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
+        agent = pred_agent(args, raw_utts, emb_path, train_model)
+
+    bot_token = '9a1233af-e913-4b47-9ca9-a61851475454'  #os.environ['BOT_TOKEN']
+    print('lets go!')
     connection = sqlite3.connect('loopai.db')
     if not check_db(connection):
         setup_db(connection)

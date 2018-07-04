@@ -340,10 +340,21 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     def vect_char_(x): return np.array(vectorize_chars(x, params=vectorizing_params, trunc='pre'), int).reshape(-1, 100)
     def vect_wb_(x): return np.array(vectorize_uni_bi(x, params=vectorizing_params, trunc='pre'), int).reshape(-1, 40)
 
-    cont = clean2(' '.join(dict_from_tg['context']))
+    old_cont = dict_from_tg['context']
+    cont = [i[0] for i in old_cont]
+    cont = clean2(' '.join(cont))
     quest = clean2(dict_from_tg['question'])
     resp = responses
-    facts = list(map(clean2, dict_from_tg['facts']))
+
+    fff = dict_from_tg['facts']
+    facts = []
+    for i in range(5):
+        try:
+            facts.append(fff[i])
+        except:
+            facts.append('')
+
+    facts = list(map(clean2, facts))
 
     f1 = facts[0]
     f2 = facts[1]
@@ -384,11 +395,10 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
                       wb_res6, c_res6,
                       wb_res7, c_res7)).reshape(-1, 8, 140)
 
-    dict_to_return = {}
-    dict_to_return['cont'] = data[:,0]
-    dict_to_return['quest'] = data[:,1]
-    dict_to_return['resp'] = data[:,2]
-    dict_to_return['facts'] = data[:,2:]
+    # dict_to_return = {}
+    # dict_to_return['cont'] = data[:,0]
+    # dict_to_return['quest'] = data[:,1]
+    # dict_to_return['resp'] = data[:,2]
+    # dict_to_return['facts'] = data[:,2:]
 
-    return dict_to_return
-
+    return data
