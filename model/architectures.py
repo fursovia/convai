@@ -436,6 +436,44 @@ def build_model(is_training, sentences, params):
 
         return dense3, distance
 
+    if params.architecture == 'memory_nn_batch-0.2':
+        embeds_dict = compute_embeddings(sentences, params)
+
+        context = embeds_dict['unigrams']['context']
+        question = embeds_dict['unigrams']['question']
+        response = embeds_dict['unigrams']['response']
+        personal_info = embeds_dict['unigrams']['personal_info']
+
+        # attention history on PI
+        with tf.variable_scope("PI_attention"):
+            d_model = 300 #history.shape[-1]
+            y = multihead_attention(question,
+                                    personal_info,
+                                    d_model,
+                                    300, #personal_info_u[-1],
+                                    d_model,
+                                    3,
+                                    name="multihead_attention_history_on_pi")
+            question_new = layer_prepostprocess(question, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+
+        # attention history on PI
+        with tf.variable_scope("context_attention"):
+            d_model = 300 #history.shape[-1]
+            y = multihead_attention(question,
+                                    context,
+                                    d_model,
+                                    300, #personal_info_u[-1],
+                                    d_model,
+                                    3,
+                                    name="multihead_attention_history_on_pi")
+            question_new = layer_prepostprocess(question_new, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+
+        #temp
+        question = tf.reduce_sum(question_new, axis=1)
+        response = tf.reduce_sum(response, axis=1)
+
+        return question, response
+
     if params.architecture == 'memory_nn_batch':
         embeds_dict = compute_embeddings(sentences, params)
 
@@ -448,17 +486,17 @@ def build_model(is_training, sentences, params):
 
         # attention history on PI
         with tf.variable_scope("self_attention"):
-            d_model = 300 #history.shape[-1]
+            d_model = 300  # history.shape[-1]
             y = multihead_attention(history,
                                     personal_info_u,
                                     d_model,
-                                    300, #personal_info_u[-1],
+                                    300,  # personal_info_u[-1],
                                     d_model,
                                     3,
                                     name="multihead_attention_history_on_pi")
             history = layer_prepostprocess(history, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
 
-        #temp
+        # temp
         history = tf.reduce_sum(history, axis=1)
         response = tf.reduce_sum(response_u, axis=1)
 
