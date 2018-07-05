@@ -344,6 +344,7 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     cont = [i[0] for j, i in enumerate(old_cont) if j%2!=1]
     cont = clean2(' '.join(cont))
     quest = clean2(dict_from_tg['question'])
+    cont = quest
     resp = responses
 
     fff = dict_from_tg['facts']
