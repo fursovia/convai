@@ -10,12 +10,12 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='exp2')
-parser.add_argument('--data_dir', default='data_prod')
+parser.add_argument('--model_dir', default='last_exp')
+parser.add_argument('--data_dir', default='last_prod')
 parser.add_argument('--train_knn', default='Y')
 parser.add_argument('--test_tg', default='N')
-parser.add_argument('--prima_stampella', default='Y')
-parser.add_argument('--seconda_stampella', default='Y')
+parser.add_argument('--prima_stampella', default='N')
+parser.add_argument('--seconda_stampella', default='N')
 
 
 def check_db(connection):
