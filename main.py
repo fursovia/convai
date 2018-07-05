@@ -14,6 +14,8 @@ parser.add_argument('--model_dir', default='exp2')
 parser.add_argument('--data_dir', default='data_prod')
 parser.add_argument('--train_knn', default='Y')
 parser.add_argument('--test_tg', default='N')
+parser.add_argument('--prima_stampella', default='Y')
+parser.add_argument('--seconda_stampella', default='Y')
 
 
 def check_db(connection):
@@ -195,15 +197,16 @@ async def process_updates(updates, connection, loop, send_message_url):
         answer_text = await answer
         sends.append(send_message(send_message_url, chat_id, answer_text))
         timestamp = save_answer(connection, chat_id, answer_text)
-        asyncio.ensure_future(
-            wait_and_push(
-                connection,
-                chat_id,
-                timestamp,
-                send_message_url
-            ),
-            loop=loop
-        )
+        if send_ping:
+            asyncio.ensure_future(
+                wait_and_push(
+                    connection,
+                    chat_id,
+                    timestamp,
+                    send_message_url
+                ),
+                loop=loop
+            )
     for send in sends:
         await send
 
@@ -221,7 +224,7 @@ async def main(loop, connection, get_updates_url, send_message_url):
 
 def get_answer(data):
     print('dict data *************', data)
-    if not data['context']:
+    if send_hello and not data['context']:
         return 'Hi, how are you doing?'
         # first message from user. do something
     if args.test_tg == 'N':
@@ -243,6 +246,9 @@ if __name__ == '__main__':
         raw_utts = pickle.load(open(os.path.join(args.data_dir, 'raw_responses.pkl'), 'rb'))
         emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
         agent = pred_agent(args, raw_utts, emb_path, train_model)
+
+    send_hello = args.prima_stampella == 'Y'
+    send_ping = args.seconda_stampella == 'Y'
 
     bot_token = '00a7a39a-466e-4262-b4d1-ea92f98574d6'  # '9a1233af-e913-4b47-9ca9-a61851475454'  # os.environ['BOT_TOKEN']
     print('lets go!')
