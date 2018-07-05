@@ -30,7 +30,7 @@ if __name__ == '__main__':
         df_cleaned = pd.read_csv(table_path, nrows=None)
 
     df_cleaned = df_cleaned.fillna('')
-    df_cleaned = df_cleaned[:10]
+    # df_cleaned = df_cleaned[:2000]
 
     print(df_cleaned.columns)
     print(df_cleaned.shape)
@@ -91,11 +91,11 @@ if __name__ == '__main__':
                             'cont': _bytes_feature(cont),
                             'quest': _bytes_feature(quest),
                             'resp': _bytes_feature(resp),
-                            'facts1': _bytes_feature(fact1),
-                            'facts2': _bytes_feature(fact2),
-                            'facts3': _bytes_feature(fact3),
-                            'facts4': _bytes_feature(fact4),
-                            'facts5': _bytes_feature(fact5),
+                            'fact1': _bytes_feature(fact1),
+                            'fact2': _bytes_feature(fact2),
+                            'fact3': _bytes_feature(fact3),
+                            'fact4': _bytes_feature(fact4),
+                            'fact5': _bytes_feature(fact5),
                         }
                     )
                 )

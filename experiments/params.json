@@ -1,8 +1,8 @@
 {
     "learning_rate": 0.001,
-    "batch_size": 128,
+    "batch_size": 512,
     "train_size": 200000,
-    "architecture": "elmo_0.1",
+    "architecture": "memory_nn_batch-0.2",
     "loss_type": "triplet",
     "margin": 0.05,
     "beta":0.01,
