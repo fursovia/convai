@@ -124,9 +124,10 @@ if __name__ == '__main__':
 
     unique_responses, indexes = np.unique(responses, axis=0, return_index=True)
     unique_data = data[indexes]
+
     #
-    # raw_responses = df_raw['reply'].values
-    # raw_responses = raw_responses[indexes]
+    raw_responses = df_raw['reply'].values
+    raw_responses = raw_responses[indexes]
 
     raw_responses = df_cleaned_char['reply'].values
     raw_responses = raw_responses[indexes]
