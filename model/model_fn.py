@@ -49,11 +49,30 @@ def model_fn(features, labels, mode, params):
             # qr_sim, q_emb, r_emb
             print('logits', logits[0].shape, logits[0].shape)
 
+            distances = dists
+            top_K = 1
+            K = tf.shape(distances)[0]  # сортируем всю выборку
+            _, closest_indexes = tf.nn.top_k(-distances, k=K)  # сортируем
+            closest_indexes_cropped = closest_indexes[:, 0:top_K]
+            # reshaped_labels = tf.reshape(labels, [-1])
+            print('closest_indexes_cropped', closest_indexes_cropped.shape)
+
+            # PRECISION at K
+            flatten_indexes = tf.reshape(closest_indexes_cropped, [1, -1])
+            closest_labels = tf.reshape(tf.gather(labels, flatten_indexes), [-1, top_K])
+            true_labels = tf.transpose(tf.reshape(tf.tile(labels, [top_K]), [top_K, -1]))
+            num_equal = tf.reduce_sum(tf.cast(tf.equal(true_labels, closest_labels), tf.int32))
+            precision_at_K = tf.divide(num_equal, tf.multiply(tf.shape(labels)[0], top_K))
+
 
         if mode == tf.estimator.ModeKeys.PREDICT:
             predictions = {'hist_emb': logits[0],
                            'resp_emb': logits[1],
-                           'dists': dists}
+                           'dists': dists,
+                           'precision_at_K': precision_at_K,
+                           'closest_labels': closest_labels,
+                           'true_labels': true_labels,
+                           'num_equal': num_equal}
 
             return tf.estimator.EstimatorSpec(mode=mode,
                                               predictions=predictions,
