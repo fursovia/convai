@@ -85,8 +85,8 @@ if __name__ == '__main__':
         if args.hub == 'Y':
             # train_input_fn = input_fn2(args.data_dir, params, 'train')
             # eval_input_fn = input_fn2(args.data_dir, params, 'eval', False)
-            train_input_fn =lambda: input_fn_rawtext(args.data_dir, params, 'train', args.evaluate_every_epoch)
-            eval_input_fn =lambda: input_fn_rawtext(args.data_dir, params, 'eval', False)
+            train_input_fn = lambda: input_fn_rawtext(args.data_dir, params, 'train', args.evaluate_every_epoch)
+            eval_input_fn = lambda: input_fn_rawtext(args.data_dir, params, 'eval', False)
         else:
             train_input_fn =lambda: input_fn(args.data_dir, params, 'train', True, args.evaluate_every_epoch)
             eval_input_fn =lambda: input_fn(args.data_dir, params, 'eval', False)
@@ -109,7 +109,7 @@ if __name__ == '__main__':
             eval_input_fn =lambda: input_fn_rawtext(args.data_dir, params, 'eval', False)
         else:
             train_input_fn =lambda: input_fn(args.data_dir, params, 'full')
-            eval_input_fn =lambda: input_fn(args.data_dir, params, 'eval', False)
+            eval_input_fn =lambda: input_fn(args.data_dir, params, 'full', False)
 
         estimator.train(train_input_fn)
         tf.logging.info("Evaluation on test set.")
