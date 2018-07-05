@@ -69,7 +69,7 @@ class pred_agent():
     def fit_knn(self, train_model):
         train_embeddings = pickle.load(open(self.train_embeddings_path, 'rb'))
         if train_model:
-            self.knn_model = KNeighborsClassifier(n_neighbors=5).fit(train_embeddings, np.zeros_like(train_embeddings))
+            self.knn_model = KNeighborsClassifier(n_neighbors=10).fit(train_embeddings, np.zeros_like(train_embeddings))
             self.knn_model.save_index('model/knn.index')
         else:
             self.knn_model = KNeighborsClassifier
@@ -78,14 +78,16 @@ class pred_agent():
     def choose_from_knn(self, q_embeddings):
         indicies, _ = self.knn_model.get_labels_and_distances(q_embeddings)
         chosen = self.raw_utterances[indicies]
-        print('from where to choose: ', chosen)
-        return str(chosen[0][0])
+        #         chosen_all = chosen
+        #         print(chosen)
+        return chosen
 
     def predict(self, super_dict):
         vocabs = [self.uni2idx, self.bi2idx, self.char2idx]
-        print('vocabs')
+
+        #         print('vocabs')
         data_to_predict_knn = inference_time(super_dict, np.zeros((1, 140)), vocabs, 1)
-        # print('predict this data')
+        #         print('predict this data')
         test_predictions_knn = self.predictor({'cont': data_to_predict_knn[:, 0].reshape(-1, 140),
                                                'quest': data_to_predict_knn[:, 1].reshape(-1, 140),
                                                'resp': data_to_predict_knn[:, 2].reshape(-1, 140),
@@ -98,7 +100,11 @@ class pred_agent():
             #             print('p', p)
             qemb.append(p)
         qemb = np.array(qemb, float).reshape(-1, 300)
-
-        chosen = self.choose_from_knn(qemb)
-        print('second time: ', chosen)
-        return chosen
+        self.qemb = qemb
+        chosen_all = self.choose_from_knn(self.qemb)
+        chosen = str(chosen_all[0][0])
+        #         print('super_dict', super_dict['question'])
+        if len(set(chosen.split()) & set(super_dict['question'].split())) == len(set(chosen.split())):
+            chosen = str(chosen_all[0][1])
+        #         print('second time: ', chosen)
+        return chosen, chosen_all
