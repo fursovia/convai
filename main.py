@@ -10,8 +10,8 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='/data/i.anokhin/convai/experiments/memory_nn_batch/20180703-225239/')
-parser.add_argument('--data_dir', default='/data/i.fursov/convai/data')
+parser.add_argument('--model_dir', default='exp2')
+parser.add_argument('--data_dir', default='data_prod')
 parser.add_argument('--train_knn', default='Y')
 parser.add_argument('--test_tg', default='N')
 
@@ -77,7 +77,7 @@ async def get_updates(url, retry_timeout):
                 if resp.status == 200:
                     j = await resp.json()
                     if j.get('ok') == True and len(j['result']) > 0:
-                        print(j['result'])
+                        # print(j['result'])
                         return j['result']
                     await asyncio.sleep(retry_timeout)
                     continue
@@ -167,9 +167,9 @@ async def wait_and_push(connection, chat_id, timestamp, send_message_url):
              where chat_id = ?
                and created_at > ?
         ''',
-        (chat_id, created_at)
-    ).fetchone()[0] > 0:
-        answer_text = 'ping'
+        (chat_id, timestamp)
+    ).fetchone()[0] == 0:
+        answer_text = 'Hey, are you here? What\'s up?'
         await send_message(send_message_url, chat_id, answer_text)
         save_answer(connection, chat_id, answer_text)
 
@@ -222,10 +222,11 @@ async def main(loop, connection, get_updates_url, send_message_url):
 def get_answer(data):
     print('dict data', data)
     if not data['context']:
-        ...  # first message from user. do something
+        return 'Hi, how are doing?'
+        # first message from user. do something
     if args.test_tg == 'N':
         answer = agent.predict(data)
-        return '¯\_(ツ)_/¯' + answer
+        return answer # '¯\_(ツ)_/¯' +
     else:
         return '¯\_(ツ)_/¯'
 
@@ -243,7 +244,7 @@ if __name__ == '__main__':
         emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
         agent = pred_agent(args, raw_utts, emb_path, train_model)
 
-    bot_token = '9a1233af-e913-4b47-9ca9-a61851475454'  #os.environ['BOT_TOKEN']
+    bot_token = '00a7a39a-466e-4262-b4d1-ea92f98574d6'  # '9a1233af-e913-4b47-9ca9-a61851475454'  # os.environ['BOT_TOKEN']
     print('lets go!')
     connection = sqlite3.connect('loopai.db')
     if not check_db(connection):
@@ -254,7 +255,7 @@ if __name__ == '__main__':
         main(
             loop,
             connection,
-            f'https://2258.lnsigo.mipt.ru/bot{bot_token}/getUpdates',
-            f'https://2258.lnsigo.mipt.ru/bot{bot_token}/sendMessage'
+            f'https://2242.lnsigo.mipt.ru/bot{bot_token}/getUpdates',
+            f'https://2242.lnsigo.mipt.ru/bot{bot_token}/sendMessage'
         )
     )
