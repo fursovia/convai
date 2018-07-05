@@ -16,6 +16,8 @@ parser.add_argument('--train_knn', default='Y')
 parser.add_argument('--test_tg', default='N')
 parser.add_argument('--prima_stampella', default='N')
 parser.add_argument('--seconda_stampella', default='N')
+parser.add_argument('--token', default='00a7a39a-466e-4262-b4d1-ea92f98574d6')
+parser.add_argument('--port', default='2242')
 
 
 def check_db(connection):
@@ -250,7 +252,8 @@ if __name__ == '__main__':
     send_hello = args.prima_stampella == 'Y'
     send_ping = args.seconda_stampella == 'Y'
 
-    bot_token = '00a7a39a-466e-4262-b4d1-ea92f98574d6'  # '9a1233af-e913-4b47-9ca9-a61851475454'  # os.environ['BOT_TOKEN']
+    bot_token = args.token  # '9a1233af-e913-4b47-9ca9-a61851475454'  # os.environ['BOT_TOKEN']
+    port = args.port
     print('lets go!')
     connection = sqlite3.connect('loopai.db')
     if not check_db(connection):
@@ -261,7 +264,7 @@ if __name__ == '__main__':
         main(
             loop,
             connection,
-            f'https://2242.lnsigo.mipt.ru/bot{bot_token}/getUpdates',
-            f'https://2242.lnsigo.mipt.ru/bot{bot_token}/sendMessage'
+            f'https://{port}.lnsigo.mipt.ru/bot{bot_token}/getUpdates',
+            f'https://{port}.lnsigo.mipt.ru/bot{bot_token}/sendMessage'
         )
     )
