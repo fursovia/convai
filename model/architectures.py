@@ -571,8 +571,9 @@ def build_model(is_training, sentences, params):
         #temp
         question = tf.reduce_sum(question_new, axis=1)
         response = tf.reduce_sum(response, axis=1)
+        pairwise_dist = _pairwise_distances(0.0, question, response, params, False)
 
-        return question, response
+        return (question, response), pairwise_dist
 
     if params.architecture == 'memory_nn_batch':
         embeds_dict = compute_embeddings(sentences, params)
