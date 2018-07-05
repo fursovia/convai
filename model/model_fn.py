@@ -66,6 +66,7 @@ def model_fn(features, labels, mode, params):
             num_equal = tf.reduce_sum(tf.cast(tf.equal(true_labels, closest_labels), tf.int32))
             precision_at_K = tf.divide(num_equal, tf.multiply(tf.shape(labels)[0], top_K))
 
+            true_labels = tf.transpose(true_labels, [-1, top_K])
 
         if mode == tf.estimator.ModeKeys.PREDICT:
             predictions = {'hist_emb': logits[0],
