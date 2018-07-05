@@ -77,7 +77,7 @@ async def get_updates(url, retry_timeout):
                 if resp.status == 200:
                     j = await resp.json()
                     if j.get('ok') == True and len(j['result']) > 0:
-                        print(j['result'])
+                        # print(j['result'])
                         return j['result']
                     await asyncio.sleep(retry_timeout)
                     continue
@@ -220,13 +220,13 @@ async def main(loop, connection, get_updates_url, send_message_url):
 
 
 def get_answer(data):
-    print('dict data', data)
+    print('dict data *************', data)
     if not data['context']:
-        return 'Hi, how are doing?'
+        return 'Hi, how are you doing?'
         # first message from user. do something
     if args.test_tg == 'N':
         answer = agent.predict(data)
-        return answer # '¯\_(ツ)_/¯' +
+        return answer # + ' ¯\_(ツ)_/¯' +
     else:
         return '¯\_(ツ)_/¯'
 

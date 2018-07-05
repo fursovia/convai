@@ -24,12 +24,46 @@ def build_model(is_training, sentences, params):
     #     return hub.text_embedding_column(key=key, module_spec=module)
 
     if params.architecture == 'simple':
-        embeds_dict = compute_embeddings(sentences, params)
-        question_u = embeds_dict['unigrams']['question']
-        response_u = embeds_dict['unigrams']['response']
-        personal_info_u = embeds_dict['unigrams']['personal_info']
+        elmo = hub.Module("https://tfhub.dev/google/elmo/2")  #, trainable=False)
+        c = elmo(sentences['context'], signature='default', as_dict=True)['default']
+        q = elmo(sentences['question'], signature='default', as_dict=True)['default']
+        r = elmo(sentences['reply'], signature='default', as_dict=True)['default']
+        f1 = elmo(sentences['fact1'], signature='default', as_dict=True)['default']
+        f2 = elmo(sentences['fact2'], signature='default', as_dict=True)['default']
+        f3 = elmo(sentences['fact3'], signature='default', as_dict=True)['default']
+        f4 = elmo(sentences['fact4'], signature='default', as_dict=True)['default']
+        f5 = elmo(sentences['fact5'], signature='default', as_dict=True)['default']
 
-        return None
+        facts = tf.reshape(tf.concat([f1, f2, f3, f4, f5], axis=1), [-1, 5, 1024])
+
+        with tf.name_scope("closest_fact"):
+            dot_product = tf.matmul(tf.expand_dims(q, 1), facts, transpose_b=True)  # [None, 5]
+            dot_product = tf.reshape(dot_product, [-1, 5])
+            max_dot_product = tf.reduce_max(dot_product, axis=1, keepdims=True)  # how close?
+            max_fact_id = tf.argmax(dot_product, axis=1)
+            mask = tf.cast(tf.one_hot(max_fact_id, 5), tf.bool)
+            closest_info = tf.boolean_mask(facts, mask, axis=0)
+
+        # QR_sim = tf.sigmoid(tf.squeeze(tf.matmul(tf.expand_dims(question_gru, 1), tf.expand_dims(reply_gru, -1))))
+        qrsim = tf.squeeze(tf.matmul(tf.expand_dims(q, 1), tf.expand_dims(r, -1)))
+
+        concatenated = tf.concat([c,
+                                  q,
+                                  r,
+                                  closest_info,
+                                  max_dot_product,
+                                  qrsim], axis=1)
+
+        with tf.variable_scope('fc_1'):
+            dense1 = tf.layers.dense(concatenated, 512, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_2'):
+            dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_3'):
+            dense3 = tf.layers.dense(dense2, 2)
+
+        return dense3
 
 
     if params.architecture == 'smart':
