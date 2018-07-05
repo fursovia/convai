@@ -13,7 +13,7 @@ from multiprocessing import Pool
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', default='data', help="Directory containing the dataset")
-parser.add_argument('--nrows', type=int, default=-1)
+parser.add_argument('--nrows', type=int, default=10)
 
 
 if __name__ == '__main__':
@@ -21,8 +21,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     raw_path = os.path.join(args.data_dir, 'raw_df.csv')
-    table_path = os.path.join(args.data_dir, 'cleaned_df.csv')
-    table_path2 = os.path.join(args.data_dir, 'cleaned_char_df.csv')
+    table_path = os.path.join(args.data_dir, 'full_words.csv')
+    table_path2 = os.path.join(args.data_dir, 'full.csv')
 
     assert os.path.isfile(table_path) and os.path.isfile(table_path2), 'No files found at {}'.format(table_path)
 
@@ -121,10 +121,14 @@ if __name__ == '__main__':
                       wb_res7, c_res)).reshape(-1, 8, 140)
 
     responses = np.hstack((wb_res2, c_res)).reshape(-1, 140)
+
     unique_responses, indexes = np.unique(responses, axis=0, return_index=True)
     unique_data = data[indexes]
+    #
+    # raw_responses = df_raw['reply'].values
+    # raw_responses = raw_responses[indexes]
 
-    raw_responses = df_raw['reply'].values
+    raw_responses = df_cleaned_char['reply'].values
     raw_responses = raw_responses[indexes]
 
     print('data shape = {}'.format(data.shape))

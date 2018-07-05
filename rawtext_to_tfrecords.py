@@ -19,7 +19,7 @@ parser.add_argument('--nrows', type=int, default=-1)
 if __name__ == '__main__':
 
     args = parser.parse_args()
-    table_path = os.path.join(args.data_dir, 'labeled_char_df.csv')
+    table_path = os.path.join(args.data_dir, 'full.csv')
     print()
 
     assert os.path.isfile(table_path), 'No files found at {}'.format(table_path)

@@ -6,7 +6,7 @@ from model.model_utils import compute_embeddings
 from model.attention_module import multihead_attention, layer_prepostprocess, shape_list
 import tensorflow as tf
 import tensorflow_hub as hub
-
+from model.loss import _pairwise_distances
 
 
 def build_model(is_training, sentences, params):
@@ -54,8 +54,12 @@ def build_model(is_training, sentences, params):
                                   max_dot_product,
                                   qrsim], axis=1)
 
+
         with tf.variable_scope('fc_1'):
-            dense1 = tf.layers.dense(concatenated, 512, activation=tf.nn.relu)
+            dense0 = tf.layers.dense(concatenated, 1024, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_1'):
+            dense1 = tf.layers.dense(dense0, 512, activation=tf.nn.relu)
 
         with tf.variable_scope('fc_2'):
             dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)
@@ -533,8 +537,9 @@ def build_model(is_training, sentences, params):
         # temp
         history = tf.reduce_sum(history, axis=1)
         response = tf.reduce_sum(response_u, axis=1)
+        pairwise_dist = _pairwise_distances(0.0, history, response, params, False)
 
-        return history, response
+        return (history, response), pairwise_dist
 
     if params.architecture == 'second':
         embeds_dict = compute_embeddings(sentences, params)

@@ -78,14 +78,14 @@ class pred_agent():
     def choose_from_knn(self, q_embeddings):
         indicies, _ = self.knn_model.get_labels_and_distances(q_embeddings)
         chosen = self.raw_utterances[indicies]
-        print(chosen)
+        print('from where to choose: ', chosen)
         return str(chosen[0][0])
 
     def predict(self, super_dict):
         vocabs = [self.uni2idx, self.bi2idx, self.char2idx]
         print('vocabs')
         data_to_predict_knn = inference_time(super_dict, np.zeros((1, 140)), vocabs, 1)
-        print('predict this data')
+        # print('predict this data')
         test_predictions_knn = self.predictor({'cont': data_to_predict_knn[:, 0].reshape(-1, 140),
                                                'quest': data_to_predict_knn[:, 1].reshape(-1, 140),
                                                'resp': data_to_predict_knn[:, 2].reshape(-1, 140),

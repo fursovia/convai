@@ -12,8 +12,8 @@ from tqdm import tqdm
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='exp2')
-parser.add_argument('--data_dir', default='/data/i.fursov/convai/data')
+parser.add_argument('--model_dir', default='exp')
+parser.add_argument('--data_dir', default='/data/i.fursov/convai/data/only1')
 
 
 if __name__ == '__main__':

@@ -9,9 +9,9 @@ from model.utils import Params
 from datetime import datetime
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='experiments',
+parser.add_argument('--model_dir', default='exp',
                     help="Experiment directory containing params.json")
-parser.add_argument('--data_dir', default='/data/i.anokhin/convai/data_convai', #data_convai_string
+parser.add_argument('--data_dir', default='data/only1', #data_convai_string
                     help="Directory containing the dataset")
 # parser.add_argument('--final_train', default='N',
 #                     help="Whether to train on a whole dataset")
@@ -64,7 +64,7 @@ if __name__ == '__main__':
                                     save_summary_steps=params.save_summary_steps,
                                     train_distribute=distribution,
                                     # session_config=session_config,
-                                    save_checkpoints_steps=checkpoint_every,
+                                    #save_checkpoints_steps=checkpoint_every,
                                     keep_checkpoint_max=None)  # all checkpoint files are kept
 
     estimator = tf.estimator.Estimator(model_fn,
@@ -105,10 +105,10 @@ if __name__ == '__main__':
         if args.hub == 'Y':
             # train_input_fn = input_fn2(args.data_dir, params, 'train')
             # eval_input_fn = input_fn2(args.data_dir, params, 'eval', False)
-            train_input_fn =lambda: input_fn_rawtext(args.data_dir, params, 'train')
+            train_input_fn =lambda: input_fn_rawtext(args.data_dir, params, 'full')
             eval_input_fn =lambda: input_fn_rawtext(args.data_dir, params, 'eval', False)
         else:
-            train_input_fn =lambda: input_fn(args.data_dir, params, 'train')
+            train_input_fn =lambda: input_fn(args.data_dir, params, 'full')
             eval_input_fn =lambda: input_fn(args.data_dir, params, 'eval', False)
 
         estimator.train(train_input_fn)
