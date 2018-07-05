@@ -107,4 +107,4 @@ class pred_agent():
         if len(set(chosen.split()) & set(super_dict['question'].split())) == len(set(chosen.split())):
             chosen = str(chosen_all[0][1])
         #         print('second time: ', chosen)
-        return chosen, chosen_all
+        return chosen
