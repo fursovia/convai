@@ -233,7 +233,8 @@ def get_answer(data):
         answer = agent.predict(data)
         return answer # + ' ¯\_(ツ)_/¯' +
     else:
-        return '¯\_(ツ)_/¯'
+        answer = agent.predict(data)
+        return '¯\_(ツ)_/¯ ' + answer
 
 
 if __name__ == '__main__':
