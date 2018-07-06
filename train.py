@@ -11,7 +11,7 @@ from datetime import datetime
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='experiments',
                     help="Experiment directory containing params.json")
-parser.add_argument('--data_dir', default='/data/i.fursov/convai/data/only1', #data_convai_string
+parser.add_argument('--data_dir', default='/data/i.anokhin/convai/data/only1', #data_convai_string
                     help="Directory containing the dataset")
 # parser.add_argument('--final_train', default='N',
 #                     help="Whether to train on a whole dataset")
