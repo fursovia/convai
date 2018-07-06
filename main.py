@@ -9,6 +9,7 @@ import argparse
 import os
 import numpy as np
 import json # as
+from emoji import emojize
 
 
 parser = argparse.ArgumentParser()
@@ -22,6 +23,10 @@ parser.add_argument('--token', default='00a7a39a-466e-4262-b4d1-ea92f98574d6')
 parser.add_argument('--port', default='2242')
 
 PROB = 1
+
+greetings = ['Hi there']
+timeout_messages = ['Are you here?']
+weird_messages = ['English! *** Do you speak it?']
 
 def sent2emojified(text, word2emoji):
     add_emoji = bool(np.random.binomial(1, PROB))
@@ -248,10 +253,10 @@ def get_answer(data):
         # first message from user. do something
     if args.test_tg == 'N':
         answer = agent.predict(data)
-        return sent2emojified(answer, emoji_dict)
+        return emojize(sent2emojified(answer, emoji_dict), use_aliases=True)
     else:
         answer = agent.predict(data)
-        return '¯\_(ツ)_/¯ ' + sent2emojified(answer, emoji_dict)
+        return '¯\_(ツ)_/¯ ' + emojize(sent2emojified(answer, emoji_dict), use_aliases=True)
 
 
 if __name__ == '__main__':
