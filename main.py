@@ -22,7 +22,7 @@ parser.add_argument('--seconda_stampella', default='N')
 parser.add_argument('--token', default='00a7a39a-466e-4262-b4d1-ea92f98574d6')
 parser.add_argument('--port', default='2242')
 
-PROB = 1
+PROB = 0.5
 
 greetings = ['Hi, how are you? :smile:',
              'Hi, how is it going? :smiley_cat:',
@@ -37,7 +37,8 @@ greetings = ['Hi, how are you? :smile:',
 
 timeout_messages = ['Are you here?',
                     'I miss you :heart:',
-                    'Where are you?']
+                    'Where are you?',
+                    'Time to give me 5 stars :)']
 
 
 
