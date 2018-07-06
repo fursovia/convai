@@ -45,27 +45,12 @@ def model_fn(features, labels, mode, params):
     else:
         with tf.variable_scope('model'):
             logits, dists = build_model(is_training, features, params)
-            # qr_sim, q_emb, r_emb
-
-            # distances = dists
-            # top_K = 1
-            # K = tf.shape(distances)[0]  # сортируем всю выборку
-            # _, closest_indexes = tf.nn.top_k(-distances, k=K)  # сортируем
-            # closest_indexes_cropped = closest_indexes[:, 0:top_K]
-            # # reshaped_labels = tf.reshape(labels, [-1])
-            # print('closest_indexes_cropped', closest_indexes_cropped.shape)
-
-            # PRECISION at K
-            # labels =tf.constant([np.array()])
-            # flatten_indexes = tf.reshape(closest_indexes_cropped, [1, -1])
-            # closest_labels = tf.reshape(tf.gather(labels, flatten_indexes), [-1, top_K])
-            # true_labels = tf.transpose(tf.reshape(tf.tile(labels, [top_K]), [top_K, -1]))
-            # num_equal = tf.reduce_sum(tf.cast(tf.equal(true_labels, closest_labels), tf.int32))
-            # precision_at_K = tf.divide(num_equal, tf.multiply(tf.shape(labels)[0], top_K))
 
         if mode == tf.estimator.ModeKeys.PREDICT:
             if params.architecture == 'memory_nn_batch-0.4':
                 logits = logits[2]
+            if params.architecture == 'memory_nn_batch-0.5':
+                logits = logits[1]
             predictions = {'hist_emb': logits[0],
                            'resp_emb': logits[1],
                            'dists': dists,
@@ -88,6 +73,10 @@ def model_fn(features, labels, mode, params):
             loss2, fraction, p_at_k, mrr = get_loss(labels, logits[2], params)
             loss = loss0 + loss1 + loss2
             print('loss', loss0.shape, loss1.shape, loss2.shape)
+        elif params.architecture == 'memory_nn_batch-0.5':
+            loss0, _, _, _ = get_loss(labels, logits[0], params)
+            loss1, fraction, p_at_k, mrr = get_loss(labels, logits[1], params)
+            loss = loss0 + loss1
         else:
             print('logits', logits[0].shape, logits[0].shape)
             loss, fraction, p_at_k, mrr = get_loss(labels, logits, params)
