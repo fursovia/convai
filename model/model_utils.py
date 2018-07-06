@@ -11,7 +11,7 @@ def get_coefs(word, *arr):
 
 
 def get_embeddings2(dict_dir='/data/dssm_data/dictionaries',
-                    emb_dir='/data/i.anokhin/world_embeddings'):
+                    emb_dir='/data/i.anokhin/world_embeddings'): #glove.6B.300d.txt
     """Создает матрицу с предобученными эмбедингами
     Args:
         dict_dir: path to the dictionary
@@ -19,7 +19,7 @@ def get_embeddings2(dict_dir='/data/dssm_data/dictionaries',
     Returns:
         embedding_matrix: матрица с предобученными эмбедингами с помощью fasttext
     """
-    dict_dir = os.path.join()
+
     assert os.path.isfile(dict_dir), "No word2idx file found at {}".format(dict_dir)
     assert os.path.isfile(emb_dir), "No embedding file found at {}".format(emb_dir)
 
@@ -28,9 +28,12 @@ def get_embeddings2(dict_dir='/data/dssm_data/dictionaries',
         get_coefs(*o.strip().split()) for o in open(emb_dir, encoding='utf-8') if o.strip().split()[0] in word2idx)
 
     vocab_size = len(word2idx)
+    print('vocab_size', vocab_size)
+    print('max', max(word2idx.values()))
     embedding_size = list(embeddings_index.values())[1].shape[0]
 
-    embedding_matrix = np.zeros((vocab_size, embedding_size))
+    embedding_matrix = np.zeros((vocab_size+1, embedding_size))
+    print('embedding_matrix', embedding_matrix.shape)
 
     cnt = 0
     for word, i in word2idx.items():
@@ -49,7 +52,8 @@ def compute_embeddings(sentences, params):
     what_to_get = params.embeds  # ubc (unigrams, bigrams, chars)
     embeds_to_return = {}
 
-    weights_initializer = get_embeddings2(dict_dir=params.dict_paths, emb_dir=params.emb_dir)
+    loaded_weights = get_embeddings2(dict_dir=params.dict_paths, emb_dir=params.emb_dir)
+    weights_initializer = tf.constant_initializer(loaded_weights)
 
     # weights_initializer = tf.truncated_normal_initializer(stddev=0.001)
 
