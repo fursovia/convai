@@ -24,9 +24,23 @@ parser.add_argument('--port', default='2242')
 
 PROB = 1
 
-greetings = ['Hi there']
-timeout_messages = ['Are you here?']
-weird_messages = ['English! *** Do you speak it?']
+greetings = ['Hi, how are you? :smile:',
+             'Hi, how is it going? :smiley_cat:',
+             'Yo, how is your life?',
+             'Nice to see you :hug: how’s everything? ',
+             'Hi, how’s your day?',
+             'Hi, how do you do? :upside_down_face:',
+             'Yo! Alright mate?',
+             'Hey, are you ok?',
+             'Hey, what’s up?',
+             'Hi there!']
+
+timeout_messages = ['Are you here?',
+                    'I miss you :heart:',
+                    'Where are you?']
+
+
+
 
 def sent2emojified(text, word2emoji):
     add_emoji = bool(np.random.binomial(1, PROB))
@@ -185,7 +199,7 @@ def form_data(connection, chat_id, text, created_at):
 
 
 async def wait_and_push(connection, chat_id, timestamp, send_message_url):
-    await asyncio.sleep(20)
+    await asyncio.sleep(30)
     if connection.execute(
         '''
             select count(1)
@@ -195,7 +209,7 @@ async def wait_and_push(connection, chat_id, timestamp, send_message_url):
         ''',
         (chat_id, timestamp)
     ).fetchone()[0] == 0:
-        answer_text = 'Hey, are you here? What\'s up?'
+        answer_text = emojize(np.random.choice(timeout_messages, 1)[0], use_aliases=True)
         await send_message(send_message_url, chat_id, answer_text)
         save_answer(connection, chat_id, answer_text)
 
@@ -249,7 +263,8 @@ async def main(loop, connection, get_updates_url, send_message_url):
 def get_answer(data):
     print('dict data *************', data)
     if send_hello and not data['context']:
-        return 'Hi, how are you doing?'
+        answer_text = emojize(np.random.choice(greetings, 1)[0], use_aliases=True)
+        return answer_text
         # first message from user. do something
     if args.test_tg == 'N':
         answer = agent.predict(data)

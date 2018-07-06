@@ -15,6 +15,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', default='new_data', help="Directory containing the dataset")
 parser.add_argument('--nrows', type=int, default=-1)
 parser.add_argument('--sub', default='Y')
+parser.add_argument('--all', default='Y')
+
 
 
 if __name__ == '__main__':
@@ -36,14 +38,15 @@ if __name__ == '__main__':
         df_cleaned = pd.read_csv(table_path)
         df_raw = pd.read_csv(raw_path)
 
-    if args.sub == 'Y':
-        df_raw = df_raw[df_raw['fact1'].isna()]
-        df_cleaned_char = df_cleaned_char[df_cleaned_char['fact1'].isna()]
-        df_cleaned = df_cleaned[df_cleaned['fact1'].isna()]
-    else:
-        df_raw = df_raw[~df_raw['fact1'].isna()]
-        df_cleaned_char = df_cleaned_char[~df_cleaned_char['fact1'].isna()]
-        df_cleaned = df_cleaned[~df_cleaned['fact1'].isna()]
+    if args.all != 'Y':
+        if args.sub == 'Y':
+            df_raw = df_raw[df_raw['fact1'].isna()]
+            df_cleaned_char = df_cleaned_char[df_cleaned_char['fact1'].isna()]
+            df_cleaned = df_cleaned[df_cleaned['fact1'].isna()]
+        else:
+            df_raw = df_raw[~df_raw['fact1'].isna()]
+            df_cleaned_char = df_cleaned_char[~df_cleaned_char['fact1'].isna()]
+            df_cleaned = df_cleaned[~df_cleaned['fact1'].isna()]
 
     df_cleaned = df_cleaned.fillna('')
     df_cleaned_char = df_cleaned_char.fillna('')
