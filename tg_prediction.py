@@ -27,12 +27,13 @@ class serving_input_fn:
 
 
 class pred_agent():
-    def __init__(self, args, raw_utterances, train_embeddings_path, train_model):
+    def __init__(self, args, raw_utterances, train_embeddings_path, train_model, emb_dim=300):
         self.args = args
         self.estimator = self.create_model()
         self.create_predictor()
         self.raw_utterances = raw_utterances
         self.train_embeddings_path = train_embeddings_path
+        self.emb_dim = emb_dim
         self.fit_knn(train_model=train_model)
 
         vocabs_path = os.path.join(self.args.data_dir, 'vocabs')
@@ -69,10 +70,10 @@ class pred_agent():
     def fit_knn(self, train_model):
         train_embeddings = pickle.load(open(self.train_embeddings_path, 'rb'))
         if train_model:
-            self.knn_model = KNeighborsClassifier(n_neighbors=10).fit(train_embeddings, np.zeros_like(train_embeddings))
+            self.knn_model = KNeighborsClassifier(n_neighbors=10, dim=self.emb_dim).fit(train_embeddings, np.zeros_like(train_embeddings))
             self.knn_model.save_index('model/knn.index')
         else:
-            self.knn_model = KNeighborsClassifier(n_neighbors=10)
+            self.knn_model = KNeighborsClassifier(n_neighbors=10, dim=self.emb_dim)
             self.knn_model.load_index('model/knn.index')
 
     def choose_from_knn(self, q_embeddings):
@@ -99,7 +100,7 @@ class pred_agent():
         for p in test_predictions_knn['hist_emb']:
             #             print('p', p)
             qemb.append(p)
-        qemb = np.array(qemb, float).reshape(-1, 300)
+        qemb = np.array(qemb, float).reshape(-1, self.emb_dim)
         self.qemb = qemb
         chosen_all = self.choose_from_knn(self.qemb)
         chosen = str(chosen_all[0][0])

@@ -43,7 +43,7 @@ if __name__ == '__main__':
     else:
         train = False
 
-    agent = pred_agent(args, raw_utts, emb_path, train)
+    agent = pred_agent(args, raw_utts, emb_path, train, args.emb_dim)
 
     super_dict = {'context': [],
                   'question': ''}
