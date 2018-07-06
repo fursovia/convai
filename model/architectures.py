@@ -4,6 +4,9 @@ from tensorflow.contrib.rnn import BasicLSTMCell
 from tensorflow.contrib.rnn import GRUCell
 from model.model_utils import compute_embeddings
 from model.attention_module import multihead_attention, layer_prepostprocess, shape_list
+from model.attention_module import multihead_attention, layer_prepostprocess, dense_relu_dense
+from model.attention_module import shape_list, apply_norm, transformer_encoder_layer, convolution_on_attention, convolution_on_attention, chose_rows_given_indices, top_interactions
+from model.convolution_based_layers import DCNN_layer, folding, row_convolution, conv_kmaxpool_layer, kmax_pooling, words_convolution, conv_kmaxpool_layer_first
 import tensorflow as tf
 import tensorflow_hub as hub
 from model.loss import _pairwise_distances
@@ -25,6 +28,60 @@ def build_model(is_training, sentences, params):
 
     if params.architecture == 'simple':
         elmo = hub.Module("https://tfhub.dev/google/universal-sentence-encoder-lite/2")
+        # history_emb = tf.expand_dims(elmo(history),1)
+        # history = [sentences['quest'], sentences['cont']]
+        with tf.variable_scope("model_elmo"):
+            r = elmo(sentences['resp'])
+        with tf.variable_scope("model_elmo", reuse=True):
+            q = elmo(sentences['quest'])
+        # with tf.variable_scope("model_elmo", reuse=True):
+        #     c = elmo(sentences['cont'])
+        with tf.variable_scope("model_elmo", reuse=True):
+            f1 = elmo(sentences['fact1'])
+        with tf.variable_scope("model_elmo", reuse=True):
+            f2 = elmo(sentences['fact2'])
+        with tf.variable_scope("model_elmo", reuse=True):
+            f3 = elmo(sentences['fact3'])
+        with tf.variable_scope("model_elmo", reuse=True):
+            f4 = elmo(sentences['fact4'])
+        with tf.variable_scope("model_elmo", reuse=True):
+            f5 = elmo(sentences['fact5'])
+
+        facts = tf.reshape(tf.concat([f1, f2, f3, f4, f5], axis=1), [-1, 5, 512])
+
+        with tf.name_scope("closest_fact"):
+            dot_product = tf.matmul(tf.expand_dims(q, 1), facts, transpose_b=True)  # [None, 5]
+            dot_product = tf.reshape(dot_product, [-1, 5])
+            max_dot_product = tf.reduce_max(dot_product, axis=1, keepdims=True)  # how close?
+            max_fact_id = tf.argmax(dot_product, axis=1)
+            mask = tf.cast(tf.one_hot(max_fact_id, 5), tf.bool)
+            closest_info = tf.boolean_mask(facts, mask, axis=0)
+
+        QR_sim = tf.sigmoid(tf.squeeze(tf.matmul(tf.expand_dims(q, 1), tf.expand_dims(r, -1))))
+        #qrsim = tf.matmul(tf.expand_dims(q, 1), tf.expand_dims(r, -1))
+
+        concatenated = tf.concat([q,
+                                  r,
+                                  f1,
+                                  closest_info,
+                                  max_dot_product], axis=1)
+
+        with tf.variable_scope('fc_0'):
+            dense0 = tf.layers.dense(concatenated, 1024, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_1'):
+            dense1 = tf.layers.dense(dense0, 512, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_2'):
+            dense2 = tf.layers.dense(dense1, 256, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_3'):
+            dense3 = tf.layers.dense(dense2, 2)
+
+        return dense3, QR_sim, q, r
+
+    if params.architecture == 'simple2':
+        elmo = hub.Module("https://tfhub.dev/google/elmo/2", trainable=True)
         # history_emb = tf.expand_dims(elmo(history),1)
         # history = [sentences['quest'], sentences['cont']]
         with tf.variable_scope("model_elmo"):
@@ -129,7 +186,7 @@ def build_model(is_training, sentences, params):
         with tf.variable_scope('fc_3'):
             dense3 = tf.layers.dense(dense2, 2)
 
-        return dense3, QR_sim, q, r
+        return dense3
 
 
     if params.architecture == 'smart':
@@ -571,8 +628,126 @@ def build_model(is_training, sentences, params):
         #temp
         question = tf.reduce_sum(question_new, axis=1)
         response = tf.reduce_sum(response, axis=1)
+        pairwise_dist = _pairwise_distances(0.0, question, response, params, False)
 
-        return question, response
+        return (question, response), pairwise_dist
+
+    if params.architecture == 'memory_nn_batch-0.3':
+        embeds_dict = compute_embeddings(sentences, params)
+
+        context = embeds_dict['unigrams']['context']
+        question = embeds_dict['unigrams']['question']
+        response = embeds_dict['unigrams']['response']
+        personal_info = embeds_dict['unigrams']['personal_info']
+
+        # attention history on PI
+        with tf.variable_scope("PI_attention"):
+            d_model = 300  # history.shape[-1]
+            y = multihead_attention(question,
+                                    personal_info,
+                                    d_model,
+                                    300,  # personal_info_u[-1],
+                                    d_model,
+                                    3,
+                                    name="multihead_attention_history_on_pi")
+            question_new = layer_prepostprocess(question, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+
+        # attention history on PI
+        with tf.variable_scope("context_attention"):
+            d_model = 300  # history.shape[-1]
+            y = multihead_attention(question,
+                                    context,
+                                    d_model,
+                                    300,  # personal_info_u[-1],
+                                    d_model,
+                                    3,
+                                    name="multihead_attention_history_on_pi")
+            question = layer_prepostprocess(question_new, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+
+        with tf.variable_scope('1l'):
+            question = conv_kmaxpool_layer(question, num_filters=256,
+                                           kernel_sizes=[2, 3], kmax=10, sort=False)
+        with tf.variable_scope('1l', reuse=True):
+            response = conv_kmaxpool_layer(response, num_filters=256,
+                                           kernel_sizes=[2, 3], kmax=10, sort=False)
+            print('response', response.shape)
+
+        with tf.variable_scope('2l'):
+            question = conv_kmaxpool_layer(question, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
+        with tf.variable_scope('2l', reuse=True):
+            response = conv_kmaxpool_layer(response, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
+
+        question = tf.reduce_sum(question, axis=1)
+        response = tf.reduce_sum(response, axis=1)
+        pairwise_dist = _pairwise_distances(0.0, question, response, params, False)
+
+        return (question, response), pairwise_dist
+
+    if params.architecture == 'memory_nn_batch-0.4':
+        embeds_dict = compute_embeddings(sentences, params)
+
+        to_return = []
+        context = embeds_dict['unigrams']['context']
+        question = embeds_dict['unigrams']['question']
+        response = embeds_dict['unigrams']['response']
+        personal_info = embeds_dict['unigrams']['personal_info']
+
+        # attention history on PI
+        with tf.variable_scope("PI_attention"):
+            d_model = 300  # history.shape[-1]
+            y = multihead_attention(question,
+                                    personal_info,
+                                    d_model,
+                                    300,  # personal_info_u[-1],
+                                    d_model,
+                                    3,
+                                    name="multihead_attention_history_on_pi")
+            question = layer_prepostprocess(question, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+
+
+        with tf.variable_scope('1l'):
+            question = conv_kmaxpool_layer(question, num_filters=256,
+                                           kernel_sizes=[2, 3], kmax=10, sort=False)
+        with tf.variable_scope('1l', reuse=True):
+            response = conv_kmaxpool_layer(response, num_filters=256,
+                                           kernel_sizes=[2, 3], kmax=10, sort=False)
+        with tf.variable_scope('1l', reuse=True):
+            context = conv_kmaxpool_layer(context, num_filters=256,
+                                           kernel_sizes=[2, 3], kmax=10, sort=False)
+
+        with tf.variable_scope('2l'):
+            question = conv_kmaxpool_layer(question, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
+        with tf.variable_scope('2l', reuse=True):
+            response = conv_kmaxpool_layer(response, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
+        with tf.variable_scope('2l', reuse=True):
+            context = conv_kmaxpool_layer(context, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
+
+        context = tf.reduce_sum(context, axis=1)
+        question = tf.reduce_sum(question, axis=1)
+        response = tf.reduce_sum(response, axis=1)
+
+        # question-PI vs response
+        to_return.append((question, response))
+        # context vs response
+        to_return.append((context, response))
+
+        #all together
+        cont_quest = context+question
+        with tf.variable_scope('fc_1'):
+            cont_quest = tf.layers.dense(cont_quest, 512, activation=tf.nn.relu)
+        with tf.variable_scope('fc_1',  reuse=True):
+            response = tf.layers.dense(response, 512, activation=tf.nn.relu)
+
+        with tf.variable_scope('fc_2'):
+            cont_quest = tf.layers.dense(cont_quest, 256, activation=tf.nn.relu)
+        with tf.variable_scope('fc_2', reuse=True):
+            response = tf.layers.dense(response, 256, activation=tf.nn.relu)
+
+        to_return.append((cont_quest, response))
+        pairwise_dist = _pairwise_distances(0.0, cont_quest, response, params, False)
+
+        return to_return, pairwise_dist
+
 
     if params.architecture == 'memory_nn_batch':
         embeds_dict = compute_embeddings(sentences, params)

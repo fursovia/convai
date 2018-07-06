@@ -33,7 +33,6 @@ def model_fn(features, labels, mode, params):
             tf.losses.softmax_cross_entropy(onehot_labels=one_hot_labels, logits=logits)
         )
 
-
         if mode == tf.estimator.ModeKeys.EVAL:
             acc, acc_op = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(preds, axis=1), name='acc')
             with tf.variable_scope("metrics"):
@@ -47,7 +46,6 @@ def model_fn(features, labels, mode, params):
         with tf.variable_scope('model'):
             logits, dists = build_model(is_training, features, params)
             # qr_sim, q_emb, r_emb
-            print('logits', logits[0].shape, logits[0].shape)
 
             # distances = dists
             # top_K = 1
@@ -65,8 +63,9 @@ def model_fn(features, labels, mode, params):
             # num_equal = tf.reduce_sum(tf.cast(tf.equal(true_labels, closest_labels), tf.int32))
             # precision_at_K = tf.divide(num_equal, tf.multiply(tf.shape(labels)[0], top_K))
 
-
         if mode == tf.estimator.ModeKeys.PREDICT:
+            if params.architecture == 'memory_nn_batch-0.4':
+                logits = logits[2]
             predictions = {'hist_emb': logits[0],
                            'resp_emb': logits[1],
                            'dists': dists,
@@ -82,7 +81,17 @@ def model_fn(features, labels, mode, params):
                                                   'predict': tf.estimator.export.PredictOutput(predictions)
                                               })
 
-        loss, fraction, p_at_k, mrr = get_loss(labels, logits, params)
+        if params.architecture == 'memory_nn_batch-0.4':
+
+            loss0, _, _, _ = get_loss(labels, logits[0], params)
+            loss1, _, _, _ = get_loss(labels, logits[1], params)
+            loss2, fraction, p_at_k, mrr = get_loss(labels, logits[2], params)
+            loss = loss0 + loss1 + loss2
+            print('loss', loss0.shape, loss1.shape, loss2.shape)
+        else:
+            print('logits', logits[0].shape, logits[0].shape)
+            loss, fraction, p_at_k, mrr = get_loss(labels, logits, params)
+
         if mode == tf.estimator.ModeKeys.EVAL:
             with tf.variable_scope("metrics"):
                 eval_metric_ops = {"precision_at_K": tf.metrics.mean(p_at_k),
