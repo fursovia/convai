@@ -13,12 +13,12 @@ from emoji import emojize
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='last_exp')
-parser.add_argument('--data_dir', default='last_data')
+parser.add_argument('--model_dir', default='the_exp')
+parser.add_argument('--data_dir', default='the_data')
 parser.add_argument('--train_knn', default='Y')
 parser.add_argument('--test_tg', default='N')
-parser.add_argument('--prima_stampella', default='N')
-parser.add_argument('--seconda_stampella', default='N')
+parser.add_argument('--prima_stampella', default='Y')
+parser.add_argument('--seconda_stampella', default='Y')
 parser.add_argument('--token', default='00a7a39a-466e-4262-b4d1-ea92f98574d6')
 parser.add_argument('--port', default='2242')
 
