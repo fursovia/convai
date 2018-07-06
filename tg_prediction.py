@@ -88,6 +88,7 @@ class pred_agent():
 
         #         print('vocabs')
         data_to_predict_knn, isnull = inference_time(super_dict, np.zeros((1, 140)), vocabs, 1)
+
         if isnull:
             return 'English! Do you speak it? I don\'t understand you...'
         #         print('predict this data')
