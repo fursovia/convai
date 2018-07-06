@@ -324,6 +324,7 @@ def clean2(text):
 def inference_time(dict_from_tg, responses, vocabs, repeat=None):
 
     uni2idx, bi2idx, char2idx = vocabs
+    null_mes = False
 
     vectorizing_params = {
         'uni2idx': uni2idx,
@@ -345,7 +346,7 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     cont = clean(' '.join(cont))
     quest = clean(dict_from_tg['question'])
     if quest.strip() == '':
-        return None
+        null_mes = True
     #cont = quest
     resp = responses
 
@@ -380,7 +381,7 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
         wb_res2 = resp[0, :40].reshape(-1, 40)
         sum_words = wb_res2.sum()
         if sum_words == 0:
-            return None
+            null_mes = True
         c_res2 = resp[0, 40:140].reshape(-1, 100)
 
     wb_res = np.repeat(vect_wb_(cont), rep, axis=0)
@@ -407,4 +408,4 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
                       wb_res6, c_res6,
                       wb_res7, c_res7)).reshape(-1, 8, 140)
 
-    return data
+    return data, null_mes

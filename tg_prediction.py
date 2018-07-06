@@ -87,7 +87,9 @@ class pred_agent():
         vocabs = [self.uni2idx, self.bi2idx, self.char2idx]
 
         #         print('vocabs')
-        data_to_predict_knn = inference_time(super_dict, np.zeros((1, 140)), vocabs, 1)
+        data_to_predict_knn, isnull = inference_time(super_dict, np.zeros((1, 140)), vocabs, 1)
+        if isnull:
+            return 'English! Do you speak it? I don\'t understand you...'
         #         print('predict this data')
         test_predictions_knn = self.predictor({'cont': data_to_predict_knn[:, 0].reshape(-1, 140),
                                                'quest': data_to_predict_knn[:, 1].reshape(-1, 140),
