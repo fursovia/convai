@@ -3,11 +3,13 @@ import uvloop
 import sqlite3
 import aiohttp
 import pickle
-import json
 import datetime
 from tg_prediction import pred_agent
 import argparse
 import os
+import numpy as np
+import json # as
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='last_exp')
@@ -18,6 +20,21 @@ parser.add_argument('--prima_stampella', default='N')
 parser.add_argument('--seconda_stampella', default='N')
 parser.add_argument('--token', default='00a7a39a-466e-4262-b4d1-ea92f98574d6')
 parser.add_argument('--port', default='2242')
+
+PROB = 1
+
+def sent2emojified(text, word2emoji):
+    add_emoji = bool(np.random.binomial(1, PROB))
+    if add_emoji:
+        splitted = text.split()
+        for i, word in enumerate(splitted):
+            if word in word2emoji.keys():
+                em_list = word2emoji[word]
+                random_index = np.random.choice(len(em_list), 1)[0]
+                emoji = em_list[random_index]
+                splitted.insert((i+1), emoji)
+                return ' '.join(splitted)
+    return text
 
 
 def check_db(connection):
@@ -44,7 +61,7 @@ def setup_db(connection):
     ''')
 
 
-def get_context(connection, chat_id, timestamp, limit=3):
+def get_context(connection, chat_id, timestamp, limit=5):
     return connection.execute(
         '''
             select text
@@ -231,14 +248,30 @@ def get_answer(data):
         # first message from user. do something
     if args.test_tg == 'N':
         answer = agent.predict(data)
-        return answer # + ' ¯\_(ツ)_/¯' +
+        return sent2emojified(answer, emoji_dict)
     else:
         answer = agent.predict(data)
-        return '¯\_(ツ)_/¯ ' + answer
+        return '¯\_(ツ)_/¯ ' + sent2emojified(answer, emoji_dict)
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
+
+    with open('data/emoji.txt', 'r') as file:
+        info = json.loads(file.read())
+
+    emoji_dict = {}
+
+    for key in list(info.keys()):
+        try:
+            all_keys = info[key]['keywords']
+            for k in all_keys:
+                if k in emoji_dict.keys():
+                    emoji_dict[k].append(":" + key + ":")
+                else:
+                    emoji_dict[k] = [":" + key + ":"]
+        except:
+            pass
 
     if args.train_knn == 'Y':
         train_model = True
