@@ -14,6 +14,7 @@ from multiprocessing import Pool
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', default='new_data', help="Directory containing the dataset")
 parser.add_argument('--nrows', type=int, default=-1)
+parser.add_argument('--sub', default='Y')
 
 
 if __name__ == '__main__':
@@ -31,9 +32,18 @@ if __name__ == '__main__':
         df_cleaned = pd.read_csv(table_path, nrows=args.nrows)
         df_raw = pd.read_csv(raw_path, nrows=args.nrows)
     else:
-        df_cleaned_char = pd.read_csv(table_path2, nrows=None)
-        df_cleaned = pd.read_csv(table_path, nrows=None)
-        df_raw = pd.read_csv(raw_path, nrows=None)
+        df_cleaned_char = pd.read_csv(table_path2)
+        df_cleaned = pd.read_csv(table_path)
+        df_raw = pd.read_csv(raw_path)
+
+    if args.sub == 'Y':
+        df_raw = df_raw[df_raw['fact1'].isna()]
+        df_cleaned_char = df_cleaned_char[df_cleaned_char['fact1'].isna()]
+        df_cleaned = df_cleaned[df_cleaned['fact1'].isna()]
+    else:
+        df_raw = df_raw[~df_raw['fact1'].isna()]
+        df_cleaned_char = df_cleaned_char[~df_cleaned_char['fact1'].isna()]
+        df_cleaned = df_cleaned[~df_cleaned['fact1'].isna()]
 
     df_cleaned = df_cleaned.fillna('')
     df_cleaned_char = df_cleaned_char.fillna('')
@@ -126,9 +136,6 @@ if __name__ == '__main__':
     unique_data = data[indexes]
 
     raw_responses = df_raw['reply'].values
-    raw_responses = raw_responses[indexes]
-
-    raw_responses = df_cleaned_char['reply'].values
     raw_responses = raw_responses[indexes]
 
     print('data shape = {}'.format(data.shape))

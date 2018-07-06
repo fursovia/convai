@@ -384,9 +384,11 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     wb_res = np.repeat(vect_wb_(cont), rep, axis=0)
     c_res = np.repeat(vect_char_(cont), rep, axis=0)
     wb_res1 = np.repeat(vect_wb(quest), rep, axis=0)
-    sum_words = wb_res1.sum()
-    if sum_words == 0:
+    qqq = wb_res1 - 1
+    sum_words = qqq.sum()
+    if sum_words <= 0:
         null_mes = True
+
     c_res1 = np.repeat(vect_char(quest), rep, axis=0)
     wb_res3 = np.repeat(vect_wb(f1), rep, axis=0)
     c_res3 = np.repeat(vect_char(f1), rep, axis=0)
