@@ -62,7 +62,7 @@ if __name__ == '__main__':
         print('cont len = {}'.format(len(super_dict['context'])))
 
         text = input('input message: \n')
-        super_dict['question'] = text
+        super_dict['question'] = str(text.stip())
         print('facts = {}'.format(super_dict['facts']))
         print('context = {}'.format(super_dict['context']))
         print('question = {}'.format(super_dict['question']))
