@@ -11,7 +11,7 @@ from nltk.stem import SnowballStemmer
 from nltk.corpus import stopwords
 from nltk import ngrams
 from keras.preprocessing.sequence import pad_sequences
-from multiprocessing import Pool
+from random import shuffle
 
 
 snowball_stemmer = SnowballStemmer("english")
@@ -344,11 +344,14 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     cont = [k[0] for i, k in enumerate(old_cont) if i%2!=0]
     cont = clean(' '.join(cont))
     quest = clean(dict_from_tg['question'])
+    if quest.strip() == '':
+        return None
     #cont = quest
     resp = responses
 
     fff = dict_from_tg['facts']
     print('context = {}'.format(old_cont))
+    print('new context = {}'.format(cont))
     print('question = {}'.format(dict_from_tg['question']))
     print('facts = {}'.format(fff))
 
@@ -360,6 +363,7 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
             facts.append('')
 
     facts = list(map(clean, facts))
+    shuffle(facts)
 
     f1 = facts[0]
     f2 = facts[1]

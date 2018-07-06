@@ -253,11 +253,17 @@ def get_answer(data):
         # first message from user. do something
     if args.test_tg == 'N':
         answer = agent.predict(data)
-        return emojize(sent2emojified(answer, emoji_dict), use_aliases=True)
+        if answer is not None:
+            return emojize(sent2emojified(answer, emoji_dict), use_aliases=True)
+        else:
+            return 'English! Do you speak it? I don\'t understand you'
     else:
         answer = agent.predict(data)
-        return '¯\_(ツ)_/¯ ' + emojize(sent2emojified(answer, emoji_dict), use_aliases=True)
-
+        if answer is not None:
+            ans = emojize(sent2emojified(answer, emoji_dict), use_aliases=True)
+            return '¯\_(ツ)_/¯ ' + ans
+        else:
+            return 'English! Do you speak it? I don\'t understand you'
 
 if __name__ == '__main__':
     args = parser.parse_args()
