@@ -1,12 +1,57 @@
 import tensorflow as tf
+import numpy as np
+import pickle
+import os
+
 from model.utils import get_embeddings
 
+
+def get_coefs(word, *arr):
+    return word, np.array(arr, dtype="float32")
+
+
+def get_embeddings2(dict_dir='/data/dssm_data/dictionaries',
+                    emb_dir='/data/i.anokhin/world_embeddings'):
+    """Создает матрицу с предобученными эмбедингами
+    Args:
+        dict_dir: path to the dictionary
+        emb_dir: path to the pretrained fasttext .vec file
+    Returns:
+        embedding_matrix: матрица с предобученными эмбедингами с помощью fasttext
+    """
+    dict_dir = os.path.join()
+    assert os.path.isfile(dict_dir), "No word2idx file found at {}".format(dict_dir)
+    assert os.path.isfile(emb_dir), "No embedding file found at {}".format(emb_dir)
+
+    word2idx = pickle.load(open(dict_dir, 'rb'))
+    embeddings_index = dict(
+        get_coefs(*o.strip().split()) for o in open(emb_dir, encoding='utf-8') if o.strip().split()[0] in word2idx)
+
+    vocab_size = len(word2idx)
+    embedding_size = list(embeddings_index.values())[1].shape[0]
+
+    embedding_matrix = np.zeros((vocab_size, embedding_size))
+
+    cnt = 0
+    for word, i in word2idx.items():
+        embedding_vector = embeddings_index.get(word)
+        if embedding_vector is not None:
+            embedding_matrix[i] = embedding_vector
+        else:
+            embedding_matrix[i] = np.random.uniform(-0.25, 0.25, embedding_size)
+            cnt += 1
+
+    print('number of unknown words: ', cnt)
+
+    return embedding_matrix
 
 def compute_embeddings(sentences, params):
     what_to_get = params.embeds  # ubc (unigrams, bigrams, chars)
     embeds_to_return = {}
 
-    weights_initializer = tf.truncated_normal_initializer(stddev=0.001)
+    weights_initializer = get_embeddings2(dict_dir=params.dict_paths, emb_dir=params.emb_dir)
+
+    # weights_initializer = tf.truncated_normal_initializer(stddev=0.001)
 
     context = sentences['cont']
     question = sentences['quest']

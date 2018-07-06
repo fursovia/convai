@@ -2,7 +2,7 @@
     "learning_rate": 0.001,
     "batch_size": 512,
     "train_size": 500000,
-    "architecture": "memory_nn_batch-0.3",
+    "architecture": "memory_nn_batch-0.4",
     "loss_type": "triplet",
     "margin": 0.05,
     "beta":0.01,
@@ -12,5 +12,7 @@
     "char_size": 7046,
     "embedding_size": 300,
     "save_summary_steps": 10,
-    "embeds": "u"
+    "embeds": "u",
+    "dict_paths": "/data/i.fursov/convai/data/only1/vocabs/uni2idx.pkl",
+    "emb_dir": "/data/i.anokhin/world_embeddings/glove.6B.300d.txt"
 }
