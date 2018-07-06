@@ -13,7 +13,15 @@ from model.model_fn import model_fn
 import pickle
 import numpy as np
 from model.utils import inference_time
+from emoji import emojize
 
+
+weird_messages = ['Sorry, i don’t understand you. :thinking:',
+                  'Excuse me, can you ask another question? :confused:',
+                  'Pardon, can you repeat? :weary:',
+                  'Bro, i cant answer this. :disappointed: Ask something different, please.',
+                  'English! Do you speak it? I dont understand you',
+                  'What???']
 
 class serving_input_fn:
     def __init__(self):
@@ -87,7 +95,10 @@ class pred_agent():
         vocabs = [self.uni2idx, self.bi2idx, self.char2idx]
 
         #         print('vocabs')
-        data_to_predict_knn = inference_time(super_dict, np.zeros((1, 140)), vocabs, 1)
+        data_to_predict_knn, isnull = inference_time(super_dict, np.zeros((1, 140)), vocabs, 1)
+
+        if isnull:
+            return emojize(np.random.choice(weird_messages, 1)[0], use_aliases=True)
         #         print('predict this data')
         test_predictions_knn = self.predictor({'cont': data_to_predict_knn[:, 0].reshape(-1, 140),
                                                'quest': data_to_predict_knn[:, 1].reshape(-1, 140),

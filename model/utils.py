@@ -11,7 +11,7 @@ from nltk.stem import SnowballStemmer
 from nltk.corpus import stopwords
 from nltk import ngrams
 from keras.preprocessing.sequence import pad_sequences
-from multiprocessing import Pool
+from random import shuffle
 
 
 snowball_stemmer = SnowballStemmer("english")
@@ -324,6 +324,7 @@ def clean2(text):
 def inference_time(dict_from_tg, responses, vocabs, repeat=None):
 
     uni2idx, bi2idx, char2idx = vocabs
+    null_mes = False
 
     vectorizing_params = {
         'uni2idx': uni2idx,
@@ -341,13 +342,21 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     def vect_wb_(x): return np.array(vectorize_uni_bi(x, params=vectorizing_params, trunc='pre'), int).reshape(-1, 40)
 
     old_cont = dict_from_tg['context']
-    cont = [i[0] for j, i in enumerate(old_cont)]
+    cont = [k[0] for i, k in enumerate(old_cont) if i%2!=0]
     cont = clean(' '.join(cont))
     quest = clean(dict_from_tg['question'])
+    if quest.strip() == '':
+        null_mes = True
     #cont = quest
     resp = responses
 
     fff = dict_from_tg['facts']
+    shuffle(fff)
+    print('context = {}'.format(old_cont))
+    print('new context = {}'.format(cont))
+    print('question = {}'.format(dict_from_tg['question']))
+    print('facts = {}'.format(fff))
+
     facts = []
     for i in range(5):
         try:
@@ -375,6 +384,11 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     wb_res = np.repeat(vect_wb_(cont), rep, axis=0)
     c_res = np.repeat(vect_char_(cont), rep, axis=0)
     wb_res1 = np.repeat(vect_wb(quest), rep, axis=0)
+    qqq = wb_res1 - 1
+    sum_words = qqq.sum()
+    if sum_words <= 0:
+        null_mes = True
+
     c_res1 = np.repeat(vect_char(quest), rep, axis=0)
     wb_res3 = np.repeat(vect_wb(f1), rep, axis=0)
     c_res3 = np.repeat(vect_char(f1), rep, axis=0)
@@ -396,4 +410,4 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
                       wb_res6, c_res6,
                       wb_res7, c_res7)).reshape(-1, 8, 140)
 
-    return data
+    return data, null_mes
