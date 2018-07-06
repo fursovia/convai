@@ -14,6 +14,7 @@ from tqdm import tqdm
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='exp')
 parser.add_argument('--data_dir', default='/data/i.fursov/convai/data/only1')
+parser.add_argument('--emb_dim', type=int, default=300)
 
 
 if __name__ == '__main__':
@@ -41,10 +42,11 @@ if __name__ == '__main__':
     #     train_embeddings = np.append(train_embeddings, p['resp_emb'].reshape(-1, 300), axis=0)
 
     train_embeddings = []
-    for p in tqdm(train_predictions):
+    for i, p in tqdm(enumerate(train_predictions)):
         train_embeddings.append(p['resp_emb'])
-
-    train_embeddings = np.array(train_embeddings, float).reshape(-1, 300)
+        # if i > 100:
+        #     break
+    train_embeddings = np.array(train_embeddings, float).reshape(-1, args.emb_dim)
 
     train_emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
     pickle.dump(train_embeddings, open(train_emb_path, 'wb'))
