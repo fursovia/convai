@@ -13,7 +13,7 @@ def model_fn(features, labels, mode, params):
         is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
         with tf.variable_scope('model'):
-            logits = build_model(is_training, features, params)
+            logits, qr_sim, c, r = build_model(is_training, features, params)
 
         preds = tf.nn.softmax(logits)
 
