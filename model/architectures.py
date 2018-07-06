@@ -705,22 +705,35 @@ def build_model(is_training, sentences, params):
             question = layer_prepostprocess(question, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
 
 
-        with tf.variable_scope('1l'):
-            question = conv_kmaxpool_layer(question, num_filters=256,
-                                           kernel_sizes=[2, 3], kmax=10, sort=False)
-        with tf.variable_scope('1l', reuse=True):
-            response = conv_kmaxpool_layer(response, num_filters=256,
-                                           kernel_sizes=[2, 3], kmax=10, sort=False)
-        with tf.variable_scope('1l', reuse=True):
-            context = conv_kmaxpool_layer(context, num_filters=256,
-                                           kernel_sizes=[2, 3], kmax=10, sort=False)
+        with tf.variable_scope("context_attention"):
+            d_model = 300  # history.shape[-1]
+            y = multihead_attention(context,
+                                    question,
+                                    d_model,
+                                    300,  # personal_info_u[-1],
+                                    d_model,
+                                    3,
+                                    name="multihead_attention_history_on_pi")
+            context = layer_prepostprocess(question, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
 
-        with tf.variable_scope('2l'):
-            question = conv_kmaxpool_layer(question, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
-        with tf.variable_scope('2l', reuse=True):
-            response = conv_kmaxpool_layer(response, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
-        with tf.variable_scope('2l', reuse=True):
-            context = conv_kmaxpool_layer(context, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
+        # with tf.variable_scope('1l'):
+        #     question = conv_kmaxpool_layer(question, num_filters=256,
+        #                                    kernel_sizes=[2, 3], kmax=10, sort=False)
+        # with tf.variable_scope('1l', reuse=True):
+        #     response = conv_kmaxpool_layer(response, num_filters=256,
+        #                                    kernel_sizes=[2, 3], kmax=10, sort=False)
+        # with tf.variable_scope('1l', reuse=True):
+        #     context = conv_kmaxpool_layer(context, num_filters=256,
+        #                                    kernel_sizes=[2, 3], kmax=10, sort=False)
+        #
+        # with tf.variable_scope('2l'):
+        #     question = conv_kmaxpool_layer(question, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
+        # with tf.variable_scope('2l', reuse=True):
+        #     response = conv_kmaxpool_layer(response, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
+        # with tf.variable_scope('2l', reuse=True):
+        #     context = conv_kmaxpool_layer(context, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
+
+
 
         context = tf.reduce_sum(context, axis=1)
         question = tf.reduce_sum(question, axis=1)
