@@ -304,7 +304,7 @@ if __name__ == '__main__':
     #if args.test_tg == 'N':
     raw_utts = pickle.load(open(os.path.join(args.data_dir, 'raw_responses.pkl'), 'rb'))
     emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
-    agent = pred_agent(args, raw_utts, emb_path, train_model)
+    agent = pred_agent(args, raw_utts, emb_path, train_model, 1024)
 
     send_hello = args.prima_stampella == 'Y'
     send_ping = args.seconda_stampella == 'Y'
