@@ -42,9 +42,10 @@ if __name__ == '__main__':
     #     train_embeddings = np.append(train_embeddings, p['resp_emb'].reshape(-1, 300), axis=0)
 
     train_embeddings = []
-    for p in tqdm(train_predictions[:100]):
+    for i, p in tqdm(enumerate(train_predictions)):
         train_embeddings.append(p['resp_emb'])
-
+        # if i > 100:
+        #     break
     train_embeddings = np.array(train_embeddings, float).reshape(-1, args.emb_dim)
 
     train_emb_path = os.path.join(args.model_dir, 'embeddings.pkl')

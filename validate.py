@@ -25,8 +25,7 @@ import numpy as np
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='/data/i.fursov/convai/last_exp')
 parser.add_argument('--data_dir', default='/data/i.fursov/convai/last_data')
-parser.add_argument('--train_knn', default='Y')
-
+parser.add_argument('--рш', default='Y')
 
 
 if __name__ == '__main__':
@@ -62,7 +61,7 @@ if __name__ == '__main__':
         print('cont len = {}'.format(len(super_dict['context'])))
 
         text = input('input message: \n')
-        super_dict['question'] = str(text.stip())
+        super_dict['question'] = str(text.strip())
         print('facts = {}'.format(super_dict['facts']))
         print('context = {}'.format(super_dict['context']))
         print('question = {}'.format(super_dict['question']))
