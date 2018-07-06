@@ -293,7 +293,7 @@ def vectorize_uni_bi(text, params, trunc='post'):
 
 
 def clean2(text):
-    return clean(text, stem=True)
+    return clean(text, stem=False)
 
 
 # def inference_time(dict_from_tg, responses):
@@ -342,8 +342,8 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
 
     old_cont = dict_from_tg['context']
     cont = [i[0] for j, i in enumerate(old_cont)]
-    cont = clean2(' '.join(cont))
-    quest = clean2(dict_from_tg['question'])
+    cont = clean(' '.join(cont))
+    quest = clean(dict_from_tg['question'])
     #cont = quest
     resp = responses
 
@@ -355,7 +355,7 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
         except:
             facts.append('')
 
-    facts = list(map(clean2, facts))
+    facts = list(map(clean, facts))
 
     f1 = facts[0]
     f2 = facts[1]
@@ -395,11 +395,5 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
                       wb_res5, c_res5,
                       wb_res6, c_res6,
                       wb_res7, c_res7)).reshape(-1, 8, 140)
-
-    # dict_to_return = {}
-    # dict_to_return['cont'] = data[:,0]
-    # dict_to_return['quest'] = data[:,1]
-    # dict_to_return['resp'] = data[:,2]
-    # dict_to_return['facts'] = data[:,2:]
 
     return data

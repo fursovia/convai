@@ -12,5 +12,7 @@
     "char_size": 7046,
     "embedding_size": 300,
     "save_summary_steps": 10,
-    "embeds": "u"
+    "embeds": "u",
+    "dict_paths": "/data/i.fursov/convai/data/only1/vocabs/uni2idx.pkl",
+    "emb_dir": "/data/i.anokhin/world_embeddings/glove.6B.300d.txt"
 }

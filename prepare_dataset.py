@@ -14,9 +14,9 @@ from multiprocessing import Pool
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', default='data', help="Directory containing the dataset")
-parser.add_argument('--num_uni', type=int, default=15000)
-parser.add_argument('--num_chars', type=int, default=10000)
+parser.add_argument('--num_uni', type=int, default=20000)
 parser.add_argument('--num_bi', type=int, default=20000)
+parser.add_argument('--num_chars', type=int, default=10000)
 parser.add_argument('--min_freq', type=int, default=5)
 parser.add_argument('--neg_to_pos', type=int, default=5,
                     help='How many negative examples to one positive. NO MORE THAN 20')
@@ -31,6 +31,21 @@ if __name__ == '__main__':
 
     train_raw_data_path2 = os.path.join(args.data_dir, 'initial/train_both_revised.txt')
     valid_raw_data_path2 = os.path.join(args.data_dir, 'initial/valid_both_revised.txt')
+
+    a = pd.read_csv('/data/i.fursov/mityai/clean_only_ctx_df.csv')
+    b = pd.read_csv('/data/i.fursov/mityai/clean2_ctx_df.csv')
+    c = pd.read_csv('/data/i.fursov/mityai/raw_sub_ctx_df.csv')
+
+    a = a.fillna('')
+    b = b.fillna('')
+    c = c.fillna('')
+    mit_clean = a[a['labels'] != 0]
+    mit_clean_chars = b[b['labels'] != 0]
+    mit_raw = c[c['labels'] != 0]
+
+    print(mit_clean.shape)
+    print(mit_clean_chars.shape)
+    print(mit_raw.shape)
 
     with open(train_raw_data_path1, 'r', encoding='utf-8') as file:
         train_raw_data1 = file.readlines()
@@ -141,7 +156,9 @@ if __name__ == '__main__':
     columns = ['context', 'question', 'reply', 'fact1', 'fact2', 'fact3', 'fact4', 'fact5', 'labels']
     XY = np.hstack((np.array(X, object), np.array(Y, int).reshape(-1, 1)))
     df = pd.DataFrame(XY, columns=columns)
-    df.to_csv(os.path.join(args.data_dir, 'raw_df.csv'), index=False)
+    print(df.shape)
+
+    #df.to_csv(os.path.join(args.data_dir, 'raw_df.csv'), index=False)
 
     print('cleaning...')
     with Pool(50) as p:
@@ -174,7 +191,9 @@ if __name__ == '__main__':
         'labels': df['labels'].values
     })
 
-    df_cleaned.to_csv(os.path.join(args.data_dir, 'cleaned_df.csv'), index=False)
+    print(df_cleaned.shape)
+
+    #df_cleaned.to_csv(os.path.join(args.data_dir, 'cleaned_df.csv'), index=False)
 
     def clean2(text):
         return clean(text, stem=False)
@@ -210,7 +229,9 @@ if __name__ == '__main__':
         'labels': df['labels'].values
     })
 
-    df_cleaned_char.to_csv(os.path.join(args.data_dir, 'cleaned_char_df.csv'), index=False)
+    print(df_cleaned_char.shape)
+
+    #df_cleaned_char.to_csv(os.path.join(args.data_dir, 'cleaned_char_df.csv'), index=False)
 
     # получаем словарь
     vocabs_path = os.path.join(args.data_dir, 'vocabs')
@@ -220,6 +241,26 @@ if __name__ == '__main__':
 
     if not os.path.exists(vocabs_path):
         os.makedirs(vocabs_path)
+
+    df = df[columns].append(mit_raw[columns])
+    df_cleaned = df_cleaned[columns].append(mit_clean[columns])
+    df_cleaned_char = df_cleaned_char[columns].append(mit_clean_chars[columns])
+
+    print(df.shape)
+    print(df_cleaned.shape)
+    print(df_cleaned_char.shape)
+
+    df = df[df['labels']!=0]
+    df_cleaned = df_cleaned[df_cleaned['labels']!=0]
+    df_cleaned_char = df_cleaned_char[df_cleaned_char['labels']!=0]
+
+    print(df.shape)
+    print(df_cleaned.shape)
+    print(df_cleaned_char.shape)
+
+    df.to_csv(os.path.join(args.data_dir, 'raw_df.csv'), index=False)
+    df_cleaned.to_csv(os.path.join(args.data_dir, 'cleaned_df.csv'), index=False)
+    df_cleaned_char.to_csv(os.path.join(args.data_dir, 'cleaned_char_df.csv'), index=False)
 
     # КОРПУС
     corpus = []
@@ -243,6 +284,10 @@ if __name__ == '__main__':
 
     char3grams = ngrams(' '.join(corpus_char), 3)
     char_counter = Counter(char3grams)
+
+    print(len(unigrams_counter.most_common()))
+    print(len(bigrams_counter.most_common()))
+    print(len(char_counter.most_common()))
 
     uni2tok = [o for o, c in unigrams_counter.most_common(args.num_uni) if c > args.min_freq]
     uni2tok.insert(0, 'u_k')

@@ -25,6 +25,7 @@ import numpy as np
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='/data/i.fursov/convai/last_exp')
 parser.add_argument('--data_dir', default='/data/i.fursov/convai/last_data')
+parser.add_argument('--train_knn', default='Y')
 parser.add_argument('--emb_dim', type=int, default=300)
 
 
