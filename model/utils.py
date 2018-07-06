@@ -341,13 +341,17 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     def vect_wb_(x): return np.array(vectorize_uni_bi(x, params=vectorizing_params, trunc='pre'), int).reshape(-1, 40)
 
     old_cont = dict_from_tg['context']
-    cont = [i[0] for j, i in enumerate(old_cont)]
+    cont = [k[0] for i, k in enumerate(old_cont) if i%2!=0]
     cont = clean(' '.join(cont))
     quest = clean(dict_from_tg['question'])
     #cont = quest
     resp = responses
 
     fff = dict_from_tg['facts']
+    print('context = {}'.format(old_cont))
+    print('question = {}'.format(dict_from_tg['question']))
+    print('facts = {}'.format(fff))
+
     facts = []
     for i in range(5):
         try:
