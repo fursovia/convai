@@ -64,6 +64,8 @@ def model_fn(features, labels, mode, params):
             # precision_at_K = tf.divide(num_equal, tf.multiply(tf.shape(labels)[0], top_K))
 
         if mode == tf.estimator.ModeKeys.PREDICT:
+            if params.architecture == 'memory_nn_batch-0.4':
+                logits = logits[2]
             predictions = {'hist_emb': logits[0],
                            'resp_emb': logits[1],
                            'dists': dists,

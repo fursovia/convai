@@ -2,7 +2,7 @@
     "learning_rate": 0.001,
     "batch_size": 512,
     "train_size": 500000,
-    "architecture": "memory_nn_batch-0.4",
+    "architecture": "memory_nn_batch-0.3",
     "loss_type": "triplet",
     "margin": 0.05,
     "beta":0.01,
