@@ -52,10 +52,11 @@ def compute_embeddings(sentences, params):
     what_to_get = params.embeds  # ubc (unigrams, bigrams, chars)
     embeds_to_return = {}
 
-    loaded_weights = get_embeddings2(dict_dir=params.dict_paths, emb_dir=params.emb_dir)
-    weights_initializer = tf.constant_initializer(loaded_weights)
-
-    # weights_initializer = tf.truncated_normal_initializer(stddev=0.001)
+    if params.use_pretrained == True:
+        loaded_weights = get_embeddings2(dict_dir=params.dict_paths, emb_dir=params.emb_dir)
+        weights_initializer = tf.constant_initializer(loaded_weights)
+    else:
+        weights_initializer = tf.truncated_normal_initializer(stddev=0.001)
 
     context = sentences['cont']
     question = sentences['quest']
