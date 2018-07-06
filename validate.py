@@ -23,8 +23,8 @@ import numpy as np
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='/data/i.fursov/convai/last_exp')
-parser.add_argument('--data_dir', default='/data/i.fursov/convai/last_data')
+parser.add_argument('--model_dir', default='experiments')
+parser.add_argument('--data_dir', default='/data/i.anokhin/convai/data/only1')
 parser.add_argument('--train_knn', default='Y')
 parser.add_argument('--emb_dim', type=int, default=300)
 
@@ -49,7 +49,7 @@ if __name__ == '__main__':
                   'question': ''}
                   #'facts': []}
 
-    test_data = pd.read_csv('/data/i.fursov/convai/data/only1/full.csv')
+    test_data = pd.read_csv('/data/i.anokhin/convai/data/only1/full.csv')
     test_data = test_data.fillna('')
     indexes = list(test_data.index)
     rand = np.random.choice(indexes, 1)[0]

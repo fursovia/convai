@@ -9,16 +9,16 @@ from model.utils import Params
 from datetime import datetime
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='experiments',
+parser.add_argument('--model_dir', default='exp',
                     help="Experiment directory containing params.json")
-parser.add_argument('--data_dir', default='/data/i.anokhin/convai/new_data', #data_convai_string
+parser.add_argument('--data_dir', default='/data/i.anokhin/convai/new_data', #data_convai_string new_data
                     help="Directory containing the dataset")
 # parser.add_argument('--final_train', default='N',
 #                     help="Whether to train on a whole dataset")
-parser.add_argument('--train_evaluate', default='Y',
+parser.add_argument('--train_evaluate', default='N',
                     help="train and evaluate each epoch")
 parser.add_argument('--hub', default='N')
-parser.add_argument('--num_gpus', type=int, default=4,
+parser.add_argument('--num_gpus', type=int, default=3,
                     help="Number of GPUs to train on")
 parser.add_argument('--save_epoch', type=int, default=2,
                     help="Save checkpoints every N epochs")
@@ -104,10 +104,10 @@ if __name__ == '__main__':
         if args.hub == 'Y':
             # train_input_fn = input_fn2(args.data_dir, params, 'train')
             # eval_input_fn = input_fn2(args.data_dir, params, 'eval', False)
-            train_input_fn =lambda: input_fn_rawtext(args.data_dir, params, 'train')
+            train_input_fn =lambda: input_fn_rawtext(args.data_dir, params, 'full')
             eval_input_fn =lambda: input_fn_rawtext(args.data_dir, params, 'eval', False)
         else:
-            train_input_fn =lambda: input_fn(args.data_dir, params, 'train')
+            train_input_fn =lambda: input_fn(args.data_dir, params, 'full')
             eval_input_fn =lambda: input_fn(args.data_dir, params, 'eval', False)
 
         estimator.train(train_input_fn)

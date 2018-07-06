@@ -664,6 +664,7 @@ def build_model(is_training, sentences, params):
                                     name="multihead_attention_history_on_pi")
             question = layer_prepostprocess(question_new, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
 
+
         with tf.variable_scope('1l'):
             question = conv_kmaxpool_layer(question, num_filters=256,
                                            kernel_sizes=[2, 3], kmax=10, sort=False)
@@ -716,25 +717,6 @@ def build_model(is_training, sentences, params):
                                     name="multihead_attention_history_on_pi")
             context = layer_prepostprocess(question, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
 
-        # with tf.variable_scope('1l'):
-        #     question = conv_kmaxpool_layer(question, num_filters=256,
-        #                                    kernel_sizes=[2, 3], kmax=10, sort=False)
-        # with tf.variable_scope('1l', reuse=True):
-        #     response = conv_kmaxpool_layer(response, num_filters=256,
-        #                                    kernel_sizes=[2, 3], kmax=10, sort=False)
-        # with tf.variable_scope('1l', reuse=True):
-        #     context = conv_kmaxpool_layer(context, num_filters=256,
-        #                                    kernel_sizes=[2, 3], kmax=10, sort=False)
-        #
-        # with tf.variable_scope('2l'):
-        #     question = conv_kmaxpool_layer(question, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
-        # with tf.variable_scope('2l', reuse=True):
-        #     response = conv_kmaxpool_layer(response, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
-        # with tf.variable_scope('2l', reuse=True):
-        #     context = conv_kmaxpool_layer(context, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
-
-
-
         context = tf.reduce_sum(context, axis=1)
         question = tf.reduce_sum(question, axis=1)
         response = tf.reduce_sum(response, axis=1)
@@ -761,6 +743,65 @@ def build_model(is_training, sentences, params):
 
         return to_return, pairwise_dist
 
+    if params.architecture == 'memory_nn_batch-0.5':
+        embeds_dict = compute_embeddings(sentences, params)
+
+        context = embeds_dict['unigrams']['context']
+        question = embeds_dict['unigrams']['question']
+        response = embeds_dict['unigrams']['response']
+        personal_info = embeds_dict['unigrams']['personal_info']
+
+        # attention history on PI
+        with tf.variable_scope("PI_attention"):
+            d_model = 300  # history.shape[-1]
+            y = multihead_attention(question,
+                                    personal_info,
+                                    d_model,
+                                    300,  # personal_info_u[-1],
+                                    d_model,
+                                    3,
+                                    name="multihead_attention_history_on_pi")
+            question_new = layer_prepostprocess(question, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+
+        # attention history on PI
+        with tf.variable_scope("context_attention"):
+            d_model = 300  # history.shape[-1]
+            y = multihead_attention(question,
+                                    context,
+                                    d_model,
+                                    300,  # personal_info_u[-1],
+                                    d_model,
+                                    3,
+                                    name="multihead_attention_history_on_pi")
+            question = layer_prepostprocess(question_new, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+
+        to_return = []
+        # question-PI vs response
+        question1 = tf.reduce_sum(question, axis=1)
+        response1 = tf.reduce_sum(response, axis=1)
+        to_return.append((question1, response1))
+
+        with tf.variable_scope('1l'):
+            question = conv_kmaxpool_layer(question, num_filters=256,
+                                           kernel_sizes=[2, 3], kmax=10, sort=False)
+        with tf.variable_scope('1l', reuse=True):
+            response = conv_kmaxpool_layer(response, num_filters=256,
+                                           kernel_sizes=[2, 3], kmax=10, sort=False)
+            print('response', response.shape)
+
+        with tf.variable_scope('2l'):
+            question = conv_kmaxpool_layer(question, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
+        with tf.variable_scope('2l', reuse=True):
+            response = conv_kmaxpool_layer(response, num_filters=512, kernel_sizes=[2, 3], kmax=1, sort=False)
+
+        question = tf.reduce_sum(question, axis=1)
+        response = tf.reduce_sum(response, axis=1)
+        # context vs response
+        to_return.append((question, response))
+
+        # pairwise_dist = _pairwise_distances(0.0, question, response, params, False)
+
+        return to_return, tf.zeros_like(question)
 
     if params.architecture == 'memory_nn_batch':
         embeds_dict = compute_embeddings(sentences, params)
