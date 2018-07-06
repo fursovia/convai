@@ -350,6 +350,7 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     resp = responses
 
     fff = dict_from_tg['facts']
+    shuffle(fff)
     print('context = {}'.format(old_cont))
     print('new context = {}'.format(cont))
     print('question = {}'.format(dict_from_tg['question']))
@@ -363,7 +364,6 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
             facts.append('')
 
     facts = list(map(clean, facts))
-    shuffle(facts)
 
     f1 = facts[0]
     f2 = facts[1]
@@ -378,6 +378,9 @@ def inference_time(dict_from_tg, responses, vocabs, repeat=None):
     else:
         rep = 1
         wb_res2 = resp[0, :40].reshape(-1, 40)
+        sum_words = wb_res2.sum()
+        if sum_words == 0:
+            return None
         c_res2 = resp[0, 40:140].reshape(-1, 100)
 
     wb_res = np.repeat(vect_wb_(cont), rep, axis=0)
