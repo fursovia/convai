@@ -14,6 +14,8 @@ from multiprocessing import Pool
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', default='data', help="Directory containing the dataset")
+parser.add_argument('--mityai', default='Y')
+parser.add_argument('--only_1', default='Y')
 parser.add_argument('--num_uni', type=int, default=15000)
 parser.add_argument('--num_chars', type=int, default=10000)
 parser.add_argument('--num_bi', type=int, default=20000)
@@ -31,6 +33,14 @@ if __name__ == '__main__':
 
     train_raw_data_path2 = os.path.join(args.data_dir, 'initial/train_both_revised.txt')
     valid_raw_data_path2 = os.path.join(args.data_dir, 'initial/valid_both_revised.txt')
+
+    a = pd.read_csv('/data/i.fursov/mityai/clean_only_ctx_df.csv')
+    b = pd.read_csv('/data/i.fursov/mityai/clean2_ctx_df.csv')
+    c = pd.read_csv('/data/i.fursov/mityai/raw_sub_ctx_df.csv')
+
+    mit_clean_chars = a[a['labels'] != 0]
+    mit_clean = b[b['labels'] != 0]
+    mit_raw = c[c['labels'] != 0]
 
     with open(train_raw_data_path1, 'r', encoding='utf-8') as file:
         train_raw_data1 = file.readlines()
@@ -141,6 +151,11 @@ if __name__ == '__main__':
     columns = ['context', 'question', 'reply', 'fact1', 'fact2', 'fact3', 'fact4', 'fact5', 'labels']
     XY = np.hstack((np.array(X, object), np.array(Y, int).reshape(-1, 1)))
     df = pd.DataFrame(XY, columns=columns)
+    if args.mityai == 'Y':
+        df = df[columns].append(mit_raw[columns])
+    if args.only_1 == 'Y':
+        df = df[df['labels']!=0]
+
     df.to_csv(os.path.join(args.data_dir, 'raw_df.csv'), index=False)
 
     print('cleaning...')
@@ -173,6 +188,12 @@ if __name__ == '__main__':
         'fact5': fact5_cleaned,
         'labels': df['labels'].values
     })
+
+    if args.mityai == 'Y':
+        df_cleaned = df_cleaned[columns].append(mit_clean[columns])
+
+    if args.only_1 == 'Y':
+        df_cleaned = df_cleaned[df_cleaned['labels']!=0]
 
     df_cleaned.to_csv(os.path.join(args.data_dir, 'cleaned_df.csv'), index=False)
 
@@ -209,6 +230,11 @@ if __name__ == '__main__':
         'fact5': fact5_cleaned,
         'labels': df['labels'].values
     })
+
+    if args.mityai == 'Y':
+        df_cleaned_char = df_cleaned_char[columns].append(mit_clean_chars[columns])
+    if args.only_1 == 'Y':
+        df_cleaned_char = df_cleaned_char[df_cleaned_char['labels']!=0]
 
     df_cleaned_char.to_csv(os.path.join(args.data_dir, 'cleaned_char_df.csv'), index=False)
 
