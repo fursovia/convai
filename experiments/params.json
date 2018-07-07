@@ -4,7 +4,6 @@
     "batch_size": 512,
     "train_size": 700000,
     "architecture": "memory_nn_batch-0.3",
-    "architecture": "memory_nn_batch-0.2",
     "loss_type": "triplet",
     "margin": 0.05,
     "beta":0.01,
