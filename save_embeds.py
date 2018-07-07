@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='exp')
-parser.add_argument('--data_dir', default='/data/i.fursov/convai/data/only1')
+parser.add_argument('--data_dir', default='/data/i.anokhin/convai/only_convai')
 parser.add_argument('--emb_dim', type=int, default=300)
 
 

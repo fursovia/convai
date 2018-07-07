@@ -601,6 +601,8 @@ def build_model(is_training, sentences, params):
         response = embeds_dict['unigrams']['response']
         personal_info = embeds_dict['unigrams']['personal_info']
 
+        question = tf.concat([question, context], axis=1)
+
         # attention history on PI
         with tf.variable_scope("PI_attention"):
             d_model = 300 #history.shape[-1]
@@ -614,16 +616,16 @@ def build_model(is_training, sentences, params):
             question_new = layer_prepostprocess(question, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
 
         # attention history on PI
-        with tf.variable_scope("context_attention"):
-            d_model = 300 #history.shape[-1]
-            y = multihead_attention(question,
-                                    context,
-                                    d_model,
-                                    300, #personal_info_u[-1],
-                                    d_model,
-                                    3,
-                                    name="multihead_attention_history_on_pi")
-            question_new = layer_prepostprocess(question_new, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+        # with tf.variable_scope("context_attention"):
+        #     d_model = 300 #history.shape[-1]
+        #     y = multihead_attention(question,
+        #                             context,
+        #                             d_model,
+        #                             300, #personal_info_u[-1],
+        #                             d_model,
+        #                             3,
+        #                             name="multihead_attention_history_on_pi")
+        #     question_new = layer_prepostprocess(question_new, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
 
         #temp
         question = tf.reduce_sum(question_new, axis=1)
@@ -640,6 +642,8 @@ def build_model(is_training, sentences, params):
         response = embeds_dict['unigrams']['response']
         personal_info = embeds_dict['unigrams']['personal_info']
 
+        question = tf.concat([question, context], axis=1)
+
         # attention history on PI
         with tf.variable_scope("PI_attention"):
             d_model = 300  # history.shape[-1]
@@ -650,19 +654,19 @@ def build_model(is_training, sentences, params):
                                     d_model,
                                     3,
                                     name="multihead_attention_history_on_pi")
-            question_new = layer_prepostprocess(question, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+            question = layer_prepostprocess(question, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
 
         # attention history on PI
-        with tf.variable_scope("context_attention"):
-            d_model = 300  # history.shape[-1]
-            y = multihead_attention(question,
-                                    context,
-                                    d_model,
-                                    300,  # personal_info_u[-1],
-                                    d_model,
-                                    3,
-                                    name="multihead_attention_history_on_pi")
-            question = layer_prepostprocess(question_new, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
+        # with tf.variable_scope("context_attention"):
+        #     d_model = 300  # history.shape[-1]
+        #     y = multihead_attention(question,
+        #                             context,
+        #                             d_model,
+        #                             300,  # personal_info_u[-1],
+        #                             d_model,
+        #                             3,
+        #                             name="multihead_attention_history_on_pi")
+        #     question = layer_prepostprocess(question_new, y, 'ad', 0., 'noam', d_model, 1e-6, 'normalization_attn')
 
         with tf.variable_scope('1l'):
             question = conv_kmaxpool_layer(question, num_filters=256,

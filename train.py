@@ -11,7 +11,7 @@ from datetime import datetime
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='experiments',
                     help="Experiment directory containing params.json")
-parser.add_argument('--data_dir', default='/data/i.anokhin/convai/new_data', #data_convai_string
+parser.add_argument('--data_dir', default='/data/i.anokhin/convai/new_data', #data_convai_string /data/i.fursov/convai/only_convai
                     help="Directory containing the dataset")
 # parser.add_argument('--final_train', default='N',
 #                     help="Whether to train on a whole dataset")
@@ -104,10 +104,10 @@ if __name__ == '__main__':
         if args.hub == 'Y':
             # train_input_fn = input_fn2(args.data_dir, params, 'train')
             # eval_input_fn = input_fn2(args.data_dir, params, 'eval', False)
-            train_input_fn =lambda: input_fn_rawtext(args.data_dir, params, 'train')
+            train_input_fn =lambda: input_fn_rawtext(args.data_dir, params, 'full')
             eval_input_fn =lambda: input_fn_rawtext(args.data_dir, params, 'eval', False)
         else:
-            train_input_fn =lambda: input_fn(args.data_dir, params, 'train')
+            train_input_fn =lambda: input_fn(args.data_dir, params, 'full')
             eval_input_fn =lambda: input_fn(args.data_dir, params, 'eval', False)
 
         estimator.train(train_input_fn)
