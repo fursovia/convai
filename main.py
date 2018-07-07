@@ -3,21 +3,58 @@ import uvloop
 import sqlite3
 import aiohttp
 import pickle
-import json
 import datetime
 from tg_prediction import pred_agent
 import argparse
 import os
+import numpy as np
+import json # as
+from emoji import emojize
+
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='last_exp')
-parser.add_argument('--data_dir', default='last_data')
+parser.add_argument('--model_dir', default='the_exp')
+parser.add_argument('--data_dir', default='the_data')
 parser.add_argument('--train_knn', default='Y')
 parser.add_argument('--test_tg', default='N')
-parser.add_argument('--prima_stampella', default='N')
-parser.add_argument('--seconda_stampella', default='N')
+parser.add_argument('--prima_stampella', default='Y')
+parser.add_argument('--seconda_stampella', default='Y')
 parser.add_argument('--token', default='00a7a39a-466e-4262-b4d1-ea92f98574d6')
 parser.add_argument('--port', default='2242')
+
+PROB = 0.5
+
+greetings = ['Hi, how are you? :smile:',
+             'Hi, how is it going? :smiley_cat:',
+             'Yo, how is your life?',
+             'Nice to see you :hug: how’s everything? ',
+             'Hi, how’s your day?',
+             'Hi, how do you do? :upside_down_face:',
+             'Yo! Alright mate?',
+             'Hey, are you ok?',
+             'Hey, what’s up?',
+             'Hi there!']
+
+timeout_messages = ['Are you here?',
+                    'I miss you :heart:',
+                    'Where are you?',
+                    'Time to give me 5 stars :)']
+
+
+
+
+def sent2emojified(text, word2emoji):
+    add_emoji = bool(np.random.binomial(1, PROB))
+    if add_emoji:
+        splitted = text.split()
+        for i, word in enumerate(splitted):
+            if word in word2emoji.keys():
+                em_list = word2emoji[word]
+                random_index = np.random.choice(len(em_list), 1)[0]
+                emoji = em_list[random_index]
+                splitted.insert((i+1), emoji)
+                return ' '.join(splitted)
+    return text
 
 
 def check_db(connection):
@@ -44,7 +81,7 @@ def setup_db(connection):
     ''')
 
 
-def get_context(connection, chat_id, timestamp, limit=3):
+def get_context(connection, chat_id, timestamp, limit=5):
     return connection.execute(
         '''
             select text
@@ -163,7 +200,7 @@ def form_data(connection, chat_id, text, created_at):
 
 
 async def wait_and_push(connection, chat_id, timestamp, send_message_url):
-    await asyncio.sleep(20)
+    await asyncio.sleep(30)
     if connection.execute(
         '''
             select count(1)
@@ -173,7 +210,7 @@ async def wait_and_push(connection, chat_id, timestamp, send_message_url):
         ''',
         (chat_id, timestamp)
     ).fetchone()[0] == 0:
-        answer_text = 'Hey, are you here? What\'s up?'
+        answer_text = emojize(np.random.choice(timeout_messages, 1)[0], use_aliases=True)
         await send_message(send_message_url, chat_id, answer_text)
         save_answer(connection, chat_id, answer_text)
 
@@ -227,18 +264,37 @@ async def main(loop, connection, get_updates_url, send_message_url):
 def get_answer(data):
     print('dict data *************', data)
     if send_hello and not data['context']:
-        return 'Hi, how are you doing?'
+        answer_text = emojize(np.random.choice(greetings, 1)[0], use_aliases=True)
+        return answer_text
         # first message from user. do something
     if args.test_tg == 'N':
         answer = agent.predict(data)
-        return answer # + ' ¯\_(ツ)_/¯' +
+        return emojize(sent2emojified(answer, emoji_dict), use_aliases=True)
+
     else:
         answer = agent.predict(data)
-        return '¯\_(ツ)_/¯ ' + answer
+        ans = emojize(sent2emojified(answer, emoji_dict), use_aliases=True)
+        return '¯\_(ツ)_/¯ ' + ans
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
+
+    with open('data/emoji.txt', 'r') as file:
+        info = json.loads(file.read())
+
+    emoji_dict = {}
+
+    for key in list(info.keys()):
+        try:
+            all_keys = info[key]['keywords']
+            for k in all_keys:
+                if k in emoji_dict.keys():
+                    emoji_dict[k].append(":" + key + ":")
+                else:
+                    emoji_dict[k] = [":" + key + ":"]
+        except:
+            pass
 
     if args.train_knn == 'Y':
         train_model = True
@@ -248,7 +304,7 @@ if __name__ == '__main__':
     #if args.test_tg == 'N':
     raw_utts = pickle.load(open(os.path.join(args.data_dir, 'raw_responses.pkl'), 'rb'))
     emb_path = os.path.join(args.model_dir, 'embeddings.pkl')
-    agent = pred_agent(args, raw_utts, emb_path, train_model)
+    agent = pred_agent(args, raw_utts, emb_path, train_model, 1024)
 
     send_hello = args.prima_stampella == 'Y'
     send_ping = args.seconda_stampella == 'Y'
